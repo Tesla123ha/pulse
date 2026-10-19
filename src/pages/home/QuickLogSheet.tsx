@@ -1,6 +1,5 @@
-import { IonModal } from '@ionic/react';
 import { useEffect, useState } from 'react';
-import { Button, Stepper } from '../../components';
+import { Button, Sheet, Stepper } from '../../components';
 import { estimateKcal, type ActivityMeta } from '../../lib/activity';
 import type { ActivityLogRow, Units } from '../../lib/database.types';
 import { formatDecimal, formatInt } from '../../lib/format';
@@ -50,16 +49,9 @@ const QuickLogSheet: React.FC<QuickLogSheetProps> = ({ activity, last, units, on
   };
 
   return (
-    <IonModal
-      className="pl-sheet"
-      isOpen={activity !== null}
-      onDidDismiss={onDismiss}
-      initialBreakpoint={1}
-      breakpoints={[0, 1]}
-      aria-labelledby="quicklog-title"
-    >
+    <Sheet isOpen={activity !== null} onDismiss={onDismiss} labelledBy="quicklog-title">
       {activity && (
-        <div className="pl-sheet__body">
+        <>
           <div>
             <h2 id="quicklog-title" className="t-title-md">
               Log {label}
@@ -97,9 +89,9 @@ const QuickLogSheet: React.FC<QuickLogSheetProps> = ({ activity, last, units, on
               Cancel
             </Button>
           </div>
-        </div>
+        </>
       )}
-    </IonModal>
+    </Sheet>
   );
 };
 

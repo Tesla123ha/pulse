@@ -18,9 +18,13 @@ import { IonApp, IonRouterOutlet, IonTabs, setupIonicReact } from '@ionic/react'
 import { IonReactRouter } from '@ionic/react-router';
 import Auth from './pages/Auth';
 import Home from './pages/Home';
-import Kit from './pages/Kit';
-import KitHome from './pages/KitHome';
+import Kit from './pages/kit/Kit';
+import KitHome from './pages/kit/KitHome';
+import KitSession from './pages/kit/KitSession';
+import KitFinish from './pages/kit/KitFinish';
 import Placeholder from './pages/Placeholder';
+import Session from './pages/Session';
+import Finish from './pages/Finish';
 import { renderBottomNav } from './components';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 
@@ -77,10 +81,10 @@ const SignedIn: React.FC = () => (
     </Route>
     {/* Full-screen routes without the tab bar */}
     <Route exact path="/session">
-      <Placeholder title="Workout session" />
+      <Session />
     </Route>
     <Route exact path="/finish">
-      <Placeholder title="Finish workout" />
+      <Finish />
     </Route>
     {import.meta.env.DEV && (
       <Route exact path="/kit">
@@ -90,6 +94,16 @@ const SignedIn: React.FC = () => (
     {import.meta.env.DEV && (
       <Route exact path="/kit/home">
         <KitHome />
+      </Route>
+    )}
+    {import.meta.env.DEV && (
+      <Route exact path="/kit/session">
+        <KitSession />
+      </Route>
+    )}
+    {import.meta.env.DEV && (
+      <Route exact path="/kit/finish">
+        <KitFinish />
       </Route>
     )}
     <Route exact path="/">

@@ -6,6 +6,8 @@ export interface Loaded<T> {
   error: string | null;
   loading: boolean;
   reload: () => Promise<void>;
+  /** Replace loaded data locally after a write, without a round trip. */
+  setData: (update: (prev: T) => T) => void;
 }
 
 /**
@@ -42,7 +44,9 @@ export function useLoader<T>(load: () => Promise<T>): Loaded<T> {
     if (mounted.current && !loading) void reload();
   });
 
-  return { data, error, loading, reload };
+  const patch = useCallback((update: (prev: T) => T) => setData((prev) => (prev === null ? prev : update(prev))), []);
+
+  return { data, error, loading, reload, setData: patch };
 }
 
 /** Plain-language message for a failed load. */

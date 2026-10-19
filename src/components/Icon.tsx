@@ -67,6 +67,7 @@ const paths = {
   ),
   stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
   pause: <path d="M9 5v14M15 5v14" />,
+  play: <path d="M7 5l12 7-12 7z" />,
   swap: <path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" />,
   skip: <path d="M5 5l9 7-9 7zM18 5v14" />,
   pencil: <path d="M4 20l4-1L19 8l-3-3L5 16z" />,

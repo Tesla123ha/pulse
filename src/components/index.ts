@@ -17,3 +17,4 @@ export type { WeekDay, DayStatus } from './WeekStrip';
 export { default as ChartBars } from './ChartBars';
 export { NAV_TABS, renderBottomNav } from './BottomNav';
 export { default as Toggle } from './Toggle';
+export { default as Sheet } from './Sheet';
