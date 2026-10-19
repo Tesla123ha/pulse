@@ -1,0 +1,123 @@
+/* Global base and type utilities built on tokens.css */
+html,
+body {
+  background: var(--canvas);
+  color: var(--text);
+  font: var(--type-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Type styles */
+.t-display-xl {
+  font: var(--type-display-xl);
+  letter-spacing: var(--type-display-xl-tracking);
+  font-variant-numeric: tabular-nums;
+}
+.t-title-lg {
+  font: var(--type-title-lg);
+  letter-spacing: var(--type-title-lg-tracking);
+}
+.t-title-md {
+  font: var(--type-title-md);
+  letter-spacing: var(--type-title-md-tracking);
+}
+.t-num {
+  font: var(--type-numeric-lg);
+  letter-spacing: var(--type-numeric-lg-tracking);
+  font-variant-numeric: tabular-nums;
+}
+.t-title-sm {
+  font: var(--type-title-sm);
+}
+.t-body {
+  font: var(--type-body);
+}
+.t-strong {
+  font: var(--type-body-strong);
+}
+.t-cap {
+  font: var(--type-caption);
+  color: var(--text-secondary);
+}
+.t-label {
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+}
+.t-muted {
+  color: var(--text-muted);
+}
+.t-secondary {
+  color: var(--text-secondary);
+}
+
+/* Screen layout: gutter space-5, sections space-6, cards space-3 */
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-5) var(--space-6);
+  padding-top: calc(var(--space-10) + var(--ion-safe-area-top, 0px));
+  max-width: 480px;
+  margin: 0 auto;
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 24px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}

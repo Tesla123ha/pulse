@@ -1,0 +1,7 @@
+{
+  "name": "pulse",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}

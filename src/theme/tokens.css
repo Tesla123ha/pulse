@@ -1,0 +1,91 @@
+/*
+ * Pulse design tokens.
+ * Source of truth: Pulse Design System (tokens.json v1). Dark theme only.
+ * Change a value here, never inline in a component.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Color: surfaces, stepped from canvas upward. No shadows for depth. */
+  --canvas: #0a0c0b;
+  --surface: #141816;
+  --surface-raised: #1c211f;
+  --surface-overlay: #262c29;
+
+  /* Color: borders */
+  --border-subtle: #2a312e; /* decorative card outline only */
+  --border-strong: #6b7771; /* control outlines, 3:1 on every surface */
+
+  /* Color: text */
+  --text: #f5f7f3;
+  --text-secondary: #b9c2bc;
+  --text-muted: #929d96;
+
+  /* Color: accent (lime). Progress and the next action only. */
+  --accent: #d8f94a;
+  --accent-pressed: #c4e43a;
+  --on-accent: #0a0c0b;
+
+  /* Color: danger. Stopping or deleting only. */
+  --danger: #ff7b6b;
+  --on-danger: #1a0705;
+
+  /* Color: data series. Always printed beside a label. */
+  --data-protein: #6db6ff;
+  --data-carbs: #ffb347;
+  --data-fat: #5ed4c0;
+
+  /* Color: charts and tracks */
+  --chart-bar: #7f8b84;
+  --track: #2e3532;
+
+  /* Type: families */
+  --font-display: "Bricolage Grotesque", "DM Sans", system-ui, sans-serif;
+  --font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
+
+  /* Type: styles (font shorthand + letter spacing) */
+  --type-display-xl: 700 44px/44px var(--font-display);
+  --type-display-xl-tracking: -0.02em;
+  --type-title-lg: 700 32px/36px var(--font-display);
+  --type-title-lg-tracking: -0.02em;
+  --type-title-md: 700 22px/28px var(--font-display);
+  --type-title-md-tracking: -0.01em;
+  --type-numeric-lg: 700 28px/32px var(--font-display);
+  --type-numeric-lg-tracking: -0.01em;
+  --type-title-sm: 600 17px/24px var(--font-sans);
+  --type-body: 400 15px/22px var(--font-sans);
+  --type-body-strong: 600 15px/22px var(--font-sans);
+  --type-caption: 500 13px/18px var(--font-sans);
+  --type-label: 600 12px/16px var(--font-sans);
+  --type-label-tracking: 0.02em;
+
+  /* Spacing: 4pt grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Radius */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 999px;
+
+  /* Size */
+  --size-tap: 48px;
+  --size-icon: 24px;
+  --size-nav: 72px;
+  --size-ring: 120px;
+
+  /* Shadow: focus only. Elevation is a surface step, never a shadow. */
+  --focus-ring: 0 0 0 2px #0a0c0b, 0 0 0 4px #d8f94a;
+
+  /* Motion */
+  --motion-press: 150ms ease-out;
+  --motion-fill: 400ms ease-out;
+}

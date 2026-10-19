@@ -1,0 +1,78 @@
+/*
+ * Maps Pulse tokens onto Ionic's theme variables. Dark only.
+ * Loaded after @ionic/react/css/palettes/dark.always.css so these win.
+ */
+:root,
+:root.ion-palette-dark {
+  --ion-font-family: var(--font-sans);
+
+  --ion-background-color: var(--canvas);
+  --ion-background-color-rgb: 10, 12, 11;
+  --ion-text-color: var(--text);
+  --ion-text-color-rgb: 245, 247, 243;
+
+  --ion-border-color: var(--border-subtle);
+  --ion-placeholder-color: var(--text-secondary);
+
+  --ion-toolbar-background: var(--canvas);
+  --ion-toolbar-color: var(--text);
+  --ion-toolbar-border-color: var(--border-subtle);
+
+  --ion-tab-bar-background: var(--surface);
+  --ion-tab-bar-border-color: var(--border-subtle);
+  --ion-tab-bar-color: var(--text-muted);
+  --ion-tab-bar-color-selected: var(--text);
+
+  --ion-item-background: var(--surface);
+  --ion-item-border-color: var(--border-subtle);
+  --ion-card-background: var(--surface);
+  --ion-overlay-background-color: var(--surface-raised);
+
+  /* primary = accent (lime) */
+  --ion-color-primary: #d8f94a;
+  --ion-color-primary-rgb: 216, 249, 74;
+  --ion-color-primary-contrast: #0a0c0b;
+  --ion-color-primary-contrast-rgb: 10, 12, 11;
+  --ion-color-primary-shade: #c4e43a;
+  --ion-color-primary-tint: #dcfa5c;
+
+  /* secondary = surface-overlay (secondary buttons, stepper buttons) */
+  --ion-color-secondary: #262c29;
+  --ion-color-secondary-rgb: 38, 44, 41;
+  --ion-color-secondary-contrast: #f5f7f3;
+  --ion-color-secondary-contrast-rgb: 245, 247, 243;
+  --ion-color-secondary-shade: #212724;
+  --ion-color-secondary-tint: #3c413e;
+
+  /* danger */
+  --ion-color-danger: #ff7b6b;
+  --ion-color-danger-rgb: 255, 123, 107;
+  --ion-color-danger-contrast: #1a0705;
+  --ion-color-danger-contrast-rgb: 26, 7, 5;
+  --ion-color-danger-shade: #e06c5e;
+  --ion-color-danger-tint: #ff887a;
+
+  /* medium = text-secondary */
+  --ion-color-medium: #b9c2bc;
+  --ion-color-medium-rgb: 185, 194, 188;
+  --ion-color-medium-contrast: #0a0c0b;
+  --ion-color-medium-contrast-rgb: 10, 12, 11;
+  --ion-color-medium-shade: #a3aba5;
+  --ion-color-medium-tint: #c0c8c3;
+
+  /* light = text (filled selections) */
+  --ion-color-light: #f5f7f3;
+  --ion-color-light-rgb: 245, 247, 243;
+  --ion-color-light-contrast: #0a0c0b;
+  --ion-color-light-contrast-rgb: 10, 12, 11;
+  --ion-color-light-shade: #d8d9d6;
+  --ion-color-light-tint: #f6f8f4;
+
+  /* dark = surface */
+  --ion-color-dark: #141816;
+  --ion-color-dark-rgb: 20, 24, 22;
+  --ion-color-dark-contrast: #f5f7f3;
+  --ion-color-dark-contrast-rgb: 245, 247, 243;
+  --ion-color-dark-shade: #121513;
+  --ion-color-dark-tint: #2c2f2d;
+}
