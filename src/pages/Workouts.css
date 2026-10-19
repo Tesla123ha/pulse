@@ -1,0 +1,77 @@
+.workouts-search {
+  gap: var(--space-3);
+  color: var(--text-secondary);
+}
+.workouts-search ion-input {
+  --color: var(--text);
+  --placeholder-color: var(--text-secondary);
+  --placeholder-opacity: 1;
+  --padding-start: 0;
+  --padding-end: 0;
+  --highlight-color: transparent;
+  min-height: 46px;
+  font: var(--type-body);
+}
+.workouts-search:focus-within {
+  box-shadow: var(--focus-ring);
+}
+
+.workouts-plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.workouts-plan .t-title-md {
+  margin-top: calc(var(--space-1) - var(--space-2));
+}
+.workouts-plan .pl-bar {
+  margin-top: var(--space-1);
+}
+.workouts-plan ion-button {
+  margin-top: var(--space-1);
+}
+
+ion-button.pl-btn.workouts-seeall {
+  --padding-start: var(--space-3);
+  --padding-end: 0;
+  height: 44px;
+  min-height: 44px;
+  margin: -10px 0;
+}
+
+.workouts-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Workout sheet */
+.workout-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.workout-group__title {
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.workout-group__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.workout-ex {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+.workout-ex__name {
+  font: var(--type-body);
+  min-width: 0;
+}
+.workout-ex .t-cap {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}

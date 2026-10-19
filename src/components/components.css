@@ -594,6 +594,8 @@ ion-modal.pl-sheet {
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-8) var(--space-5) calc(var(--space-6) + var(--ion-safe-area-bottom, 0px));
+  max-height: 88vh;
+  overflow-y: auto;
 }
 
 /* ---------- Text field ---------- */
