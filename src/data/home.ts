@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { addDays, dateKey, lastDays, startOfDay, weekdayLetter, weekdayName } from '../lib/dates';
-import type { ActivityLogRow, ActivityType, ProfileRow } from '../lib/database.types';
+import type { ActivityLogRow, ActivityType, MatchType, ProfileRow, SwimVenue } from '../lib/database.types';
 import type { WeekDay } from '../components';
 import { maybe, must } from './useLoader';
 
@@ -150,20 +150,31 @@ export async function loadHome(userId: string): Promise<HomeData> {
   };
 }
 
-export async function logActivity(input: {
-  userId: string;
+export interface NewActivity {
   type: ActivityType;
   durationMin: number;
-  distanceKm: number | null;
   kcal: number;
-}) {
+  distanceKm?: number;
+  paceSecPerKm?: number;
+  venue?: SwimVenue;
+  matchType?: MatchType;
+  wins?: number;
+  losses?: number;
+}
+
+export async function logActivity(userId: string, a: NewActivity) {
   maybe(
     await supabase.from('activity_logs').insert({
-      user_id: input.userId,
-      type: input.type,
-      duration_min: input.durationMin,
-      distance_km: input.distanceKm,
-      kcal: input.kcal,
+      user_id: userId,
+      type: a.type,
+      duration_min: a.durationMin,
+      kcal: a.kcal,
+      distance_km: a.distanceKm ?? null,
+      pace_sec_per_km: a.paceSecPerKm ?? null,
+      venue: a.venue ?? null,
+      match_type: a.matchType ?? null,
+      wins: a.wins ?? null,
+      losses: a.losses ?? null,
     }),
   );
 }

@@ -2,7 +2,14 @@
 import type { SessionData } from '../../data/session';
 import type { SetLogRow, WorkoutExerciseRow } from '../../lib/database.types';
 
-const ex = (position: number, name: string, muscles: string[], sets: number, min: number, max: number): WorkoutExerciseRow => ({
+const ex = (
+  position: number,
+  name: string,
+  muscles: string[],
+  sets: number,
+  min: number,
+  max: number,
+): WorkoutExerciseRow => ({
   id: `ex${position}`,
   workout_id: 'w',
   position,
@@ -12,6 +19,9 @@ const ex = (position: number, name: string, muscles: string[], sets: number, min
   rep_min: min,
   rep_max: max,
   rest_seconds: 90,
+  load_unit: 'kg',
+  target_type: 'reps',
+  start_load: null,
 });
 
 const exercises = [
@@ -30,6 +40,7 @@ const set = (session: string, exercise: string, n: number, kg: number, reps: num
   set_number: n,
   weight_kg: kg,
   reps,
+  stack_level: null,
   logged_at: '2026-10-01T00:00:00Z',
 });
 

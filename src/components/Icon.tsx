@@ -50,6 +50,26 @@ const paths = {
     </>
   ),
   bolt: <path d="M13 3L5 14h6l-1 7 8-11h-6z" />,
+  swim: (
+    <>
+      <circle cx="17" cy="6" r="2" />
+      <path d="M5 13l4-4 3 2 3-3" />
+      <path d="M3 18c1.5 0 1.5-1 3-1s1.5 1 3 1 1.5-1 3-1 1.5 1 3 1 1.5-1 3-1 1.5 1 3 1" />
+    </>
+  ),
+  pickleball: (
+    <>
+      <rect x="4" y="2" width="11" height="13" rx="5.5" />
+      <path d="M9.5 15v6" />
+      <circle cx="19" cy="18" r="2" />
+    </>
+  ),
+  tennis: (
+    <>
+      <ellipse cx="10" cy="9" rx="6" ry="7" />
+      <path d="M6 9h8M10 2v14M14 14l6 7" />
+    </>
+  ),
   mobility: (
     <>
       <circle cx="12" cy="5" r="2" />

@@ -1,20 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Icon, Stepper } from '../../components';
 import type { SessionData } from '../../data/session';
-import type { SetLogRow, Units } from '../../lib/database.types';
+import type { SetLogRow, Units, WorkoutExerciseRow } from '../../lib/database.types';
 import { formatInt, plural } from '../../lib/format';
+import {
+  formatEffort,
+  formatSet,
+  fromDisplayLoad,
+  loadStep,
+  loadUnitLabel,
+  storedLoad,
+  toDisplayLoad,
+} from '../../lib/load';
 import { buildModel, elapsedSeconds, formatClock, shortTarget, targetText } from '../../lib/session';
-import { displayToKg, formatWeight, kgToDisplay, weightUnit } from '../../lib/units';
 
 export interface SessionActions {
-  onCompleteSet: (weightKg: number, reps: number) => void;
+  /** `load` is stored units: kg, or stack level for machine exercises. */
+  onCompleteSet: (load: number, reps: number) => void;
   onSwap: () => void;
   onSkip: () => void;
   onNote: () => void;
 }
-
-const setText = (s: Pick<SetLogRow, 'weight_kg' | 'reps'>, units: Units) =>
-  `${formatWeight(Number(s.weight_kg), units)} × ${s.reps}`;
 
 /** The most recent earlier set for this exercise, preferring the same set number. */
 function lastTimeFor(history: SetLogRow[], exerciseId: string, setNumber: number): SetLogRow | undefined {
@@ -24,7 +30,6 @@ function lastTimeFor(history: SetLogRow[], exerciseId: string, setNumber: number
   return mine.find((h) => h.session_id === lastSession && h.set_number === setNumber) ?? mine[0];
 }
 
-const weightStep = (u: Units) => (u === 'imperial' ? 5 : 2.5);
 const roundTo = (v: number, step: number) => Math.round(v / step) * step;
 
 /** Progress across exercises: one segment each, filled by sets done. */
@@ -61,8 +66,9 @@ const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...ac
   useEffect(() => {
     if (!current) return;
     const seed = lastTime ?? doneSets[doneSets.length - 1];
-    setWeight(seed ? roundTo(kgToDisplay(Number(seed.weight_kg), units), weightStep(units) / 2) : 0);
-    setReps(seed ? seed.reps : current.rep_min);
+    const stored = seed ? storedLoad(seed, current) : Number(current.start_load ?? 0);
+    setWeight(roundTo(toDisplayLoad(stored, current, units), loadStep(current, units) / 2));
+    setReps(seed ? seed.reps : current.target_type === 'max' ? 10 : current.rep_min);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey, units]);
 
@@ -102,7 +108,7 @@ const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...ac
               <div key={s.id} className="session-set">
                 <span className="t-secondary">Set {s.set_number}</span>
                 <span className="row" style={{ gap: 'var(--space-3)' }}>
-                  <span className="t-strong">{setText(s, units)}</span>
+                  <span className="t-strong">{formatSet(s, current, units)}</span>
                   <span className="session-set__check">
                     <Icon name="check" size={16} strokeWidth={3} label="Done" />
                   </span>
@@ -111,8 +117,9 @@ const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...ac
             ))}
 
             <ActiveSet
+              exercise={current}
               setNumber={setNumber}
-              lastTime={lastTime ? setText(lastTime, units) : null}
+              lastTime={lastTime ? formatSet(lastTime, current, units) : null}
               units={units}
               weight={weight}
               reps={reps}
@@ -124,7 +131,7 @@ const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...ac
               <div key={i} className="session-set t-muted">
                 <span>Set {setNumber + i + 1}</span>
                 <span>
-                  Target {formatWeight(displayToKg(weight, units), units)} × {reps}
+                  Target {formatEffort(fromDisplayLoad(weight, current, units), reps, current, units)}
                 </span>
               </div>
             ))}
@@ -135,7 +142,7 @@ const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...ac
             size="lg"
             block
             disabled={busy || paused}
-            onClick={() => actions.onCompleteSet(displayToKg(weight, units), reps)}
+            onClick={() => actions.onCompleteSet(fromDisplayLoad(weight, current, units), reps)}
           >
             <Icon name="check" />
             Complete set {setNumber}
@@ -194,6 +201,7 @@ const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...ac
 };
 
 const ActiveSet: React.FC<{
+  exercise: WorkoutExerciseRow;
   setNumber: number;
   lastTime: string | null;
   units: Units;
@@ -201,19 +209,35 @@ const ActiveSet: React.FC<{
   reps: number;
   onWeight: (v: number) => void;
   onReps: (v: number) => void;
-}> = ({ setNumber, lastTime, units, weight, reps, onWeight, onReps }) => (
+}> = ({ exercise, setNumber, lastTime, units, weight, reps, onWeight, onReps }) => (
   <Card level="active" className="session-active">
     <div className="sec-head">
       <span className="session-active__label">Set {setNumber} · now</span>
       <span className="t-cap t-muted">{lastTime ? `Last time: ${lastTime}` : 'First time'}</span>
     </div>
     <div className="session-active__row">
-      <span className="t-cap">Weight ({weightUnit(units)})</span>
-      <Stepper name="weight" value={weight} step={weightStep(units)} min={0} max={1000} onChange={onWeight} />
+      <span className="t-cap">
+        {exercise.load_unit === 'stack' ? 'Stack' : 'Weight'} ({loadUnitLabel(exercise, units)})
+      </span>
+      <Stepper
+        name={exercise.load_unit === 'stack' ? 'stack level' : 'weight'}
+        value={weight}
+        step={loadStep(exercise, units)}
+        min={0}
+        max={1000}
+        onChange={onWeight}
+      />
     </div>
     <div className="session-active__row">
-      <span className="t-cap">Reps</span>
-      <Stepper name="reps" value={reps} step={1} min={0} max={100} onChange={onReps} />
+      <span className="t-cap">{exercise.target_type === 'seconds' ? 'Hold (s)' : 'Reps'}</span>
+      <Stepper
+        name={exercise.target_type === 'seconds' ? 'hold time' : 'reps'}
+        value={reps}
+        step={exercise.target_type === 'seconds' ? 5 : 1}
+        min={0}
+        max={exercise.target_type === 'seconds' ? 600 : 100}
+        onChange={onReps}
+      />
     </div>
   </Card>
 );

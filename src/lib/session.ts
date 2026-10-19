@@ -73,13 +73,19 @@ export function formatClock(totalSec: number): string {
   return `${h > 0 ? `${h}:` : ''}${mm}:${String(s).padStart(2, '0')}`;
 }
 
-/** "4 sets × 10–12 reps" or "3 sets × 15 reps" */
-export const targetText = (ex: WorkoutExerciseRow) =>
-  `${ex.target_sets} sets × ${ex.rep_min === ex.rep_max ? ex.rep_min : `${ex.rep_min}–${ex.rep_max}`} reps`;
+const range = (ex: WorkoutExerciseRow) => (ex.rep_min === ex.rep_max ? `${ex.rep_min}` : `${ex.rep_min}–${ex.rep_max}`);
 
-/** "3 × 15" or "4 × 10–12" */
+/** "4 sets × 10–12 reps", "3 sets × max reps", "3 sets × 30 s hold" */
+export const targetText = (ex: WorkoutExerciseRow) =>
+  ex.target_type === 'max'
+    ? `${ex.target_sets} sets × max reps`
+    : ex.target_type === 'seconds'
+      ? `${ex.target_sets} sets × ${ex.rep_min} s hold`
+      : `${ex.target_sets} sets × ${range(ex)} reps`;
+
+/** "3 × 15", "3 × Max", "3 × 30 s" */
 export const shortTarget = (ex: WorkoutExerciseRow) =>
-  `${ex.target_sets} × ${ex.rep_min === ex.rep_max ? ex.rep_min : `${ex.rep_min}–${ex.rep_max}`}`;
+  `${ex.target_sets} × ${ex.target_type === 'max' ? 'Max' : ex.target_type === 'seconds' ? `${ex.rep_min} s` : range(ex)}`;
 
 export const exerciseCaption = (model: Pick<SessionModel, 'currentNumber' | 'order' | 'allDone'>) =>
   model.allDone ? `All ${model.order.length} exercises done` : `Exercise ${model.currentNumber} of ${model.order.length}`;

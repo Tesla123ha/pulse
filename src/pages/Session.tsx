@@ -115,15 +115,15 @@ const Session: React.FC = () => {
               now={now}
               busy={busy}
               error={actionError}
-              onCompleteSet={(weightKg, reps) =>
+              onCompleteSet={(load, reps) =>
                 void run(async (d) => {
                   const m = buildModel(d.session, d.exercises, d.sets);
                   if (!m.current) return (x) => x;
                   const row = await logSet({
                     sessionId: d.session.id,
-                    exerciseId: m.current.id,
+                    exercise: m.current,
                     setNumber: m.setsFor(m.current.id).length + 1,
-                    weightKg,
+                    load,
                     reps,
                   });
                   return (x) => ({ ...x, sets: [...x.sets, row] });

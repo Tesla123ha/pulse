@@ -22,9 +22,13 @@ type Table<Row, Required extends keyof Row, Relationships extends unknown[] = []
 export type Units = 'metric' | 'imperial';
 export type WorkoutCategory = 'Strength' | 'Cardio' | 'HIIT' | 'Mobility' | 'Running';
 export type SessionStatus = 'in_progress' | 'paused' | 'completed' | 'ended_early';
-export type ActivityType = 'run' | 'lift' | 'cycle' | 'sport';
+export type ActivityType = 'run' | 'lift' | 'cycle' | 'sport' | 'swim' | 'pickleball' | 'tennis';
+export type LoadUnit = 'kg' | 'stack';
+export type TargetType = 'reps' | 'max' | 'seconds';
+export type SwimVenue = 'pool' | 'open_water';
+export type MatchType = 'singles' | 'doubles';
 export type MealType = 'breakfast' | 'lunch' | 'snacks' | 'dinner';
-export type RecordUnit = 'kg' | 'seconds' | 'km';
+export type RecordUnit = 'kg' | 'stack' | 'seconds' | 'km';
 
 export type ProfileRow = {
   id: string;
@@ -64,6 +68,11 @@ export type WorkoutExerciseRow = {
   rep_min: number;
   rep_max: number;
   rest_seconds: number;
+  /** 'stack' = machine stack level, shown as PL. */
+  load_unit: LoadUnit;
+  target_type: TargetType;
+  /** Load to start from before any history: kg or stack level. */
+  start_load: number | null;
 };
 
 export type UserPlanRow = {
@@ -107,7 +116,10 @@ export type SetLogRow = {
   exercise_id: string;
   set_number: number;
   weight_kg: number;
+  /** Reps done, or seconds held for timed exercises. */
   reps: number;
+  /** Stack level (PL) for machine exercises. */
+  stack_level: number | null;
   logged_at: string;
 };
 
@@ -120,6 +132,11 @@ export type ActivityLogRow = {
   kcal: number;
   logged_at: string;
   session_id: string | null;
+  pace_sec_per_km: number | null;
+  venue: SwimVenue | null;
+  match_type: MatchType | null;
+  wins: number | null;
+  losses: number | null;
 };
 
 export type FoodEntryRow = {

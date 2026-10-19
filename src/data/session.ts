@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { estimateKcal } from '../lib/activity';
 import { dateKey } from '../lib/dates';
 import type { ProfileRow, SetLogRow, WorkoutExerciseRow, WorkoutRow, WorkoutSessionRow } from '../lib/database.types';
+import { storedLoad } from '../lib/load';
 import { buildModel, elapsedSeconds } from '../lib/session';
 import { maybe, must } from './useLoader';
 
@@ -70,19 +71,23 @@ export async function loadOrStartSession(
 
 export async function logSet(input: {
   sessionId: string;
-  exerciseId: string;
+  exercise: Pick<WorkoutExerciseRow, 'id' | 'load_unit'>;
   setNumber: number;
-  weightKg: number;
+  /** kg, or stack level for machine exercises */
+  load: number;
   reps: number;
 }): Promise<SetLogRow> {
+  const stack = input.exercise.load_unit === 'stack';
+  const load = Math.round(input.load * 100) / 100;
   return must(
     await supabase
       .from('set_logs')
       .insert({
         session_id: input.sessionId,
-        exercise_id: input.exerciseId,
+        exercise_id: input.exercise.id,
         set_number: input.setNumber,
-        weight_kg: Math.round(input.weightKg * 100) / 100,
+        weight_kg: stack ? 0 : load,
+        stack_level: stack ? load : null,
         reps: input.reps,
       })
       .select('*')
@@ -169,24 +174,24 @@ export async function endSession(data: SessionData, userId: string): Promise<voi
     );
   }
 
-  // Personal records: a heavier set than any earlier session for that exercise.
+  // Personal records: a heavier load than any earlier session for that exercise.
   const ids = [...new Set(sets.map((s) => s.exercise_id))];
   const prior = must(
     await supabase
       .from('set_logs')
-      .select('exercise_id, weight_kg')
+      .select('exercise_id, weight_kg, stack_level')
       .in('exercise_id', ids)
       .neq('session_id', session.id)
-      .order('weight_kg', { ascending: false })
       .limit(5000),
   );
   const records = ids.flatMap((id) => {
-    const best = Math.max(...sets.filter((s) => s.exercise_id === id).map((s) => Number(s.weight_kg)));
-    const previous = prior.filter((p) => p.exercise_id === id).map((p) => Number(p.weight_kg));
-    const previousBest = previous.length ? Math.max(...previous) : 0;
     const ex = exercises.find((e) => e.id === id);
-    return ex && previousBest > 0 && best > previousBest
-      ? [{ user_id: userId, name: ex.name, value: best, unit: 'kg' as const, achieved_on: dateKey(now) }]
+    if (!ex) return [];
+    const best = Math.max(...sets.filter((s) => s.exercise_id === id).map((s) => storedLoad(s, ex)));
+    const previous = prior.filter((p) => p.exercise_id === id).map((p) => storedLoad(p, ex));
+    const previousBest = previous.length ? Math.max(...previous) : 0;
+    return previousBest > 0 && best > previousBest
+      ? [{ user_id: userId, name: ex.name, value: best, unit: ex.load_unit, achieved_on: dateKey(now) }]
       : [];
   });
   if (records.length) maybe(await supabase.from('personal_records').insert(records));

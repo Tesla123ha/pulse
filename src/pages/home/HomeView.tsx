@@ -1,16 +1,8 @@
 import { Button, Card, Icon, ListRow, ProgressRing, WeekStrip } from '../../components';
 import type { HomeData } from '../../data/home';
-import { ACTIVITIES, type ActivityMeta } from '../../lib/activity';
+import { QUICK_LOG, lastEntryText, type ActivityMeta } from '../../lib/activity';
 import { formatHeaderDate } from '../../lib/dates';
-import type { ActivityLogRow, Units } from '../../lib/database.types';
 import { formatInt, plural } from '../../lib/format';
-import { formatDistance } from '../../lib/units';
-
-const lastEntryText = (meta: ActivityMeta, last: ActivityLogRow | undefined, units: Units) => {
-  if (!last) return 'None yet';
-  if (meta.hasDistance && last.distance_km != null) return formatDistance(last.distance_km, units);
-  return `${formatInt(last.duration_min)} min`;
-};
 
 export const HomeHeader: React.FC<{ today: Date }> = ({ today }) => (
   <header className="home-hdr">
@@ -90,14 +82,14 @@ const HomeView: React.FC<{ data: HomeData; onLog: (a: ActivityMeta) => void }> =
           <span className="t-cap">Last entry shown</span>
         </div>
         <div className="quicklog">
-          {ACTIVITIES.map((a) => {
+          {QUICK_LOG.map((a) => {
             const last = lastEntryText(a, data.lastByType[a.type], units);
             return (
               <Button
                 key={a.type}
                 variant="ghost"
                 className="quicklog__tile"
-                aria-label={`Log ${a.label.toLowerCase()}, last entry ${last}`}
+                aria-label={`Log ${a.noun}, last entry ${last}`}
                 onClick={() => onLog(a)}
               >
                 <Icon name={a.icon} />

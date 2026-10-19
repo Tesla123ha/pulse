@@ -50,7 +50,7 @@ const Home: React.FC = () => {
           onDismiss={() => setLogging(null)}
           onSave={async (v) => {
             if (!logging) return;
-            await logActivity({ userId, type: logging.type, ...v });
+            await logActivity(userId, v);
             setLogging(null);
             await reload();
           }}
