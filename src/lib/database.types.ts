@@ -27,7 +27,6 @@ export type LoadUnit = 'kg' | 'stack';
 export type TargetType = 'reps' | 'max' | 'seconds';
 export type SwimVenue = 'pool' | 'open_water';
 export type MatchType = 'singles' | 'doubles';
-export type MealType = 'breakfast' | 'lunch' | 'snacks' | 'dinner';
 export type RecordUnit = 'kg' | 'stack' | 'seconds' | 'km';
 
 export type ProfileRow = {
@@ -35,11 +34,6 @@ export type ProfileRow = {
   display_name: string | null;
   workouts_per_week: number;
   move_goal_kcal: number;
-  calorie_goal: number;
-  protein_goal_g: number;
-  carbs_goal_g: number;
-  fat_goal_g: number;
-  water_goal_glasses: number;
   main_focus: string;
   units: Units;
   reminders_enabled: boolean;
@@ -139,25 +133,6 @@ export type ActivityLogRow = {
   losses: number | null;
 };
 
-export type FoodEntryRow = {
-  id: string;
-  user_id: string;
-  meal_type: MealType;
-  description: string;
-  kcal: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-  logged_on: string;
-  created_at: string;
-};
-
-export type WaterLogRow = {
-  user_id: string;
-  logged_on: string;
-  glasses: number;
-};
-
 export type PersonalRecordRow = {
   id: string;
   user_id: string;
@@ -215,8 +190,6 @@ export type Database = {
         ]
       >;
       activity_logs: Table<ActivityLogRow, 'user_id' | 'type' | 'duration_min'>;
-      food_entries: Table<FoodEntryRow, 'user_id' | 'meal_type' | 'description' | 'kcal'>;
-      water_logs: Table<WaterLogRow, 'user_id'>;
       personal_records: Table<PersonalRecordRow, 'user_id' | 'name' | 'value' | 'unit'>;
       achievements: Table<AchievementRow, 'code' | 'name' | 'description' | 'icon'>;
       user_achievements: Table<

@@ -10,12 +10,6 @@ const paths = {
     </>
   ),
   workouts: <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11" />,
-  nutrition: (
-    <>
-      <path d="M7 3v8M4 3v5a3 3 0 0 0 6 0V3M7 11v10" />
-      <path d="M17 21V3c-2.5 1.5-4 4-4 7.5V14h4" />
-    </>
-  ),
   progress: <path d="M5 20v-7M12 20V5M19 20v-11" />,
   profile: (
     <>
@@ -81,9 +75,6 @@ const paths = {
       <circle cx="11" cy="11" r="7" />
       <path d="M20 20l-4-4" />
     </>
-  ),
-  scan: (
-    <path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 9v6M12 9v6M16 9v6" />
   ),
   stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
   pause: <path d="M9 5v14M15 5v14" />,

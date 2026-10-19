@@ -365,7 +365,7 @@ ion-item.pl-listrow--dashed {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- ProgressBar and MacroBar ---------- */
+/* ---------- ProgressBar ---------- */
 .pl-bar {
   height: 8px;
   border-radius: var(--radius-pill);
@@ -377,25 +377,6 @@ ion-item.pl-listrow--dashed {
   border-radius: var(--radius-pill);
   background: var(--accent);
   transition: width var(--motion-fill);
-}
-.pl-macros {
-  display: flex;
-  gap: var(--space-4);
-}
-.pl-macro {
-  flex: 1;
-  min-width: 0;
-}
-.pl-macro__name {
-  font: var(--type-caption);
-  color: var(--text-secondary);
-}
-.pl-macro__val {
-  font: var(--type-body-strong);
-  font-variant-numeric: tabular-nums;
-}
-.pl-macro .pl-bar {
-  margin-top: var(--space-2);
 }
 
 /* ---------- Stepper ---------- */

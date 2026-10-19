@@ -30,11 +30,6 @@
   --danger: #ff7b6b;
   --on-danger: #1a0705;
 
-  /* Color: data series. Always printed beside a label. */
-  --data-protein: #6db6ff;
-  --data-carbs: #ffb347;
-  --data-fat: #5ed4c0;
-
   /* Color: charts and tracks */
   --chart-bar: #7f8b84;
   --track: #2e3532;

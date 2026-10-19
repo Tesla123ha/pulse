@@ -25,7 +25,6 @@ export interface HomeData {
   activeMin: number;
   workout: HomeWorkout | null;
   lastByType: Partial<Record<ActivityType, ActivityLogRow>>;
-  eatenKcal: number;
 }
 
 type WorkoutWithCount = {
@@ -107,7 +106,7 @@ export async function loadHome(userId: string): Promise<HomeData> {
   // A year of activity covers the streak; only the needed columns are read.
   const since = addDays(startOfDay(now), -365).toISOString();
 
-  const [profile, activity, food, workout] = await Promise.all([
+  const [profile, activity, workout] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', userId).single().then(must),
     supabase
       .from('activity_logs')
@@ -116,7 +115,6 @@ export async function loadHome(userId: string): Promise<HomeData> {
       .order('logged_at', { ascending: false })
       .limit(5000)
       .then(must),
-    supabase.from('food_entries').select('kcal').eq('logged_on', today).then(must),
     loadTodaysWorkout(),
   ]);
 
@@ -146,7 +144,6 @@ export async function loadHome(userId: string): Promise<HomeData> {
     activeMin: todays.reduce((s, a) => s + a.duration_min, 0),
     workout,
     lastByType,
-    eatenKcal: food.reduce((s, f) => s + f.kcal, 0),
   };
 }
 

@@ -10,7 +10,6 @@ export { default as ListRow } from './ListRow';
 export { default as StatTile } from './StatTile';
 export { default as ProgressRing } from './ProgressRing';
 export { default as ProgressBar } from './ProgressBar';
-export { default as MacroBar } from './MacroBar';
 export { default as Stepper } from './Stepper';
 export { default as WeekStrip } from './WeekStrip';
 export type { WeekDay, DayStatus } from './WeekStrip';

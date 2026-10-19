@@ -1,4 +1,4 @@
-import { Button, Card, Icon, ListRow, ProgressRing, WeekStrip } from '../../components';
+import { Button, Card, Icon, ProgressRing, WeekStrip } from '../../components';
 import type { HomeData } from '../../data/home';
 import { QUICK_LOG, lastEntryText, type ActivityMeta } from '../../lib/activity';
 import { formatHeaderDate } from '../../lib/dates';
@@ -21,7 +21,6 @@ const HomeView: React.FC<{ data: HomeData; onLog: (a: ActivityMeta) => void }> =
   const { profile, workout } = data;
   const units = profile.units;
   const moveFraction = profile.move_goal_kcal > 0 ? data.burnedKcal / profile.move_goal_kcal : 0;
-  const caloriesLeft = Math.max(0, profile.calorie_goal - data.eatenKcal);
   const weekCaption = [plural(data.activeDays, 'active day'), data.streak > 0 && `${formatInt(data.streak)}-day streak`]
     .filter(Boolean)
     .join(' · ');
@@ -101,12 +100,6 @@ const HomeView: React.FC<{ data: HomeData; onLog: (a: ActivityMeta) => void }> =
         </div>
       </section>
 
-      <ListRow
-        icon="nutrition"
-        title="Nutrition"
-        caption={`${formatInt(data.eatenKcal)} eaten · ${formatInt(caloriesLeft)} kcal left`}
-        routerLink="/nutrition"
-      />
     </>
   );
 };

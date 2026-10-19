@@ -4,7 +4,7 @@ export interface ProgressBarProps {
   /** 0 to 1. */
   value: number;
   label: string;
-  /** Fill color token. Lime by default; macros pass their data-* token. */
+  /** Fill color. Lime (accent) by default. */
   color?: string;
 }
 

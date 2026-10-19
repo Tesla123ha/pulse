@@ -32,7 +32,7 @@ import { AuthProvider, useAuth } from './auth/AuthProvider';
 
 setupIonicReact({ mode: 'ios' });
 
-/** The five tab destinations with the bottom navigation. */
+/** The four tab destinations with the bottom navigation. */
 const Tabs: React.FC = () => {
   const { pathname } = useLocation();
   return (
@@ -43,9 +43,6 @@ const Tabs: React.FC = () => {
         </Route>
         <Route exact path="/workouts">
           <Workouts />
-        </Route>
-        <Route exact path="/nutrition">
-          <Placeholder title="Nutrition" />
         </Route>
         <Route exact path="/progress">
           <Placeholder title="Progress" />
@@ -116,7 +113,7 @@ const SignedIn: React.FC = () => (
     <Route exact path="/">
       <Redirect to="/home" />
     </Route>
-    <Route path={['/home', '/workouts', '/nutrition', '/progress', '/profile']}>
+    <Route path={['/home', '/workouts', '/progress', '/profile']}>
       <Tabs />
     </Route>
     <Route render={() => <Redirect to="/home" />} />

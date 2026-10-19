@@ -7,7 +7,6 @@ import {
   ChipRow,
   Icon,
   ListRow,
-  MacroBar,
   ProgressBar,
   ProgressRing,
   Segmented,
@@ -88,9 +87,9 @@ const Kit: React.FC = () => {
               onClick={() => undefined}
             />
             <ListRow
-              icon="nutrition"
-              title="Breakfast"
-              caption="Oats, banana, eggs"
+              icon="run"
+              title="Easy Run Intervals"
+              caption="35 min · Beginner · Outdoor"
               end={
                 <span className="pl-listrow__end">
                   <span className="t-strong" style={{ color: 'var(--text)' }}>
@@ -121,11 +120,6 @@ const Kit: React.FC = () => {
               </div>
             </div>
             <ProgressBar value={0.375} label="3 of 8 workouts done" />
-            <div className="pl-macros">
-              <MacroBar macro="protein" current={92} target={140} />
-              <MacroBar macro="carbs" current={150} target={240} />
-              <MacroBar macro="fat" current={40} target={70} />
-            </div>
           </section>
 
           <section className="section">

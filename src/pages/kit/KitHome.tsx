@@ -13,11 +13,6 @@ const profile: ProfileRow = {
   display_name: null,
   workouts_per_week: 4,
   move_goal_kcal: 600,
-  calorie_goal: 2200,
-  protein_goal_g: 140,
-  carbs_goal_g: 240,
-  fat_goal_g: 70,
-  water_goal_glasses: 8,
   main_focus: 'Build strength',
   units: 'metric',
   reminders_enabled: true,
@@ -69,7 +64,6 @@ const data: HomeData = {
     pickleball: { ...log('pickleball', 90, null), match_type: 'doubles', wins: 3, losses: 2 },
     tennis: { ...log('tennis', 60, null), match_type: 'singles', wins: 1, losses: 1 },
   },
-  eatenKcal: 1420,
 };
 
 const KitHome: React.FC = () => {
