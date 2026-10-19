@@ -1,13 +1,3 @@
-import { Redirect, Route, useLocation } from 'react-router-dom';
-import { IonApp, IonRouterOutlet, IonTabs, setupIonicReact } from '@ionic/react';
-import { IonReactRouter } from '@ionic/react-router';
-import Auth from './pages/Auth';
-import Home from './pages/Home';
-import Kit from './pages/Kit';
-import Placeholder from './pages/Placeholder';
-import { renderBottomNav } from './components';
-import { AuthProvider, useAuth } from './auth/AuthProvider';
-
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -22,6 +12,17 @@ import './theme/fonts';
 import './theme/tokens.css';
 import './theme/ionic.css';
 import './theme/global.css';
+
+import { Redirect, Route, useLocation } from 'react-router-dom';
+import { IonApp, IonRouterOutlet, IonTabs, setupIonicReact } from '@ionic/react';
+import { IonReactRouter } from '@ionic/react-router';
+import Auth from './pages/Auth';
+import Home from './pages/Home';
+import Kit from './pages/Kit';
+import KitHome from './pages/KitHome';
+import Placeholder from './pages/Placeholder';
+import { renderBottomNav } from './components';
+import { AuthProvider, useAuth } from './auth/AuthProvider';
 
 setupIonicReact({ mode: 'ios' });
 
@@ -84,6 +85,11 @@ const SignedIn: React.FC = () => (
     {import.meta.env.DEV && (
       <Route exact path="/kit">
         <Kit />
+      </Route>
+    )}
+    {import.meta.env.DEV && (
+      <Route exact path="/kit/home">
+        <KitHome />
       </Route>
     )}
     <Route exact path="/">

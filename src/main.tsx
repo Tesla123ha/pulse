@@ -1,7 +1,5 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import './theme/tokens.css';
-import './theme/global.css';
 
 const root = createRoot(document.getElementById('root')!);
 
@@ -15,8 +13,11 @@ import('./App')
       </React.StrictMode>,
     ),
   )
-  .catch((err: unknown) => {
+  .catch(async (err: unknown) => {
     console.error(err);
+    // Theme CSS is normally loaded by App, after Ionic's CSS; load it here for the error screen.
+    await import('./theme/tokens.css');
+    await import('./theme/global.css');
     root.render(
       <main className="screen" style={{ minHeight: '100vh', justifyContent: 'center' }}>
         <h1 className="t-title-md">Pulse can't start</h1>

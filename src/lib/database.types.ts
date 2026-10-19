@@ -26,7 +26,7 @@ export type ActivityType = 'run' | 'lift' | 'cycle' | 'sport';
 export type MealType = 'breakfast' | 'lunch' | 'snacks' | 'dinner';
 export type RecordUnit = 'kg' | 'seconds' | 'km';
 
-export interface ProfileRow {
+export type ProfileRow = {
   id: string;
   display_name: string | null;
   workouts_per_week: number;
@@ -41,9 +41,9 @@ export interface ProfileRow {
   reminders_enabled: boolean;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface WorkoutRow {
+export type WorkoutRow = {
   id: string;
   owner: string | null;
   name: string;
@@ -52,9 +52,9 @@ export interface WorkoutRow {
   level: string;
   equipment: string;
   created_at: string;
-}
+};
 
-export interface WorkoutExerciseRow {
+export type WorkoutExerciseRow = {
   id: string;
   workout_id: string;
   position: number;
@@ -64,9 +64,9 @@ export interface WorkoutExerciseRow {
   rep_min: number;
   rep_max: number;
   rest_seconds: number;
-}
+};
 
-export interface UserPlanRow {
+export type UserPlanRow = {
   id: string;
   user_id: string;
   name: string;
@@ -74,9 +74,9 @@ export interface UserPlanRow {
   started_on: string;
   is_active: boolean;
   created_at: string;
-}
+};
 
-export interface PlanWorkoutRow {
+export type PlanWorkoutRow = {
   id: string;
   plan_id: string;
   workout_id: string;
@@ -84,9 +84,9 @@ export interface PlanWorkoutRow {
   position: number;
   completed_session_id: string | null;
   completed_at: string | null;
-}
+};
 
-export interface WorkoutSessionRow {
+export type WorkoutSessionRow = {
   id: string;
   user_id: string;
   workout_id: string;
@@ -99,9 +99,9 @@ export interface WorkoutSessionRow {
   exercise_order: string[] | null;
   skipped_exercise_ids: string[];
   notes: string | null;
-}
+};
 
-export interface SetLogRow {
+export type SetLogRow = {
   id: string;
   session_id: string;
   exercise_id: string;
@@ -109,9 +109,9 @@ export interface SetLogRow {
   weight_kg: number;
   reps: number;
   logged_at: string;
-}
+};
 
-export interface ActivityLogRow {
+export type ActivityLogRow = {
   id: string;
   user_id: string;
   type: ActivityType;
@@ -120,9 +120,9 @@ export interface ActivityLogRow {
   kcal: number;
   logged_at: string;
   session_id: string | null;
-}
+};
 
-export interface FoodEntryRow {
+export type FoodEntryRow = {
   id: string;
   user_id: string;
   meal_type: MealType;
@@ -133,39 +133,39 @@ export interface FoodEntryRow {
   fat_g: number;
   logged_on: string;
   created_at: string;
-}
+};
 
-export interface WaterLogRow {
+export type WaterLogRow = {
   user_id: string;
   logged_on: string;
   glasses: number;
-}
+};
 
-export interface PersonalRecordRow {
+export type PersonalRecordRow = {
   id: string;
   user_id: string;
   name: string;
   value: number;
   unit: RecordUnit;
   achieved_on: string;
-}
+};
 
-export interface AchievementRow {
+export type AchievementRow = {
   id: string;
   code: string;
   name: string;
   description: string;
   icon: string;
   sort_order: number;
-}
+};
 
-export interface UserAchievementRow {
+export type UserAchievementRow = {
   user_id: string;
   achievement_id: string;
   earned_at: string;
-}
+};
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       profiles: Table<ProfileRow, 'id'>;
@@ -213,4 +213,4 @@ export interface Database {
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };
-}
+};

@@ -1,0 +1,66 @@
+.home-hdr {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.home-ring {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.home-ring__value {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.home-workout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.home-workout ion-button {
+  margin-top: var(--space-4);
+}
+
+.quicklog {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+ion-button.pl-btn.quicklog__tile {
+  --border-radius: var(--radius-md);
+  --padding-start: var(--space-2);
+  --padding-end: var(--space-2);
+  height: 76px;
+  min-height: 76px;
+}
+.quicklog__tile .pl-btn__inner {
+  flex-direction: column;
+  gap: 2px;
+}
+.quicklog__name {
+  font: 600 15px/20px var(--font-sans);
+}
+.quicklog__last {
+  font: var(--type-caption);
+  line-height: 16px;
+  color: var(--text-secondary);
+}
+
+/* Bottom sheet (IonModal) */
+ion-modal.pl-sheet {
+  --background: var(--surface-raised);
+  --border-radius: var(--radius-xl);
+  --height: auto;
+  --handle-background: var(--border-strong);
+  --backdrop-opacity: 0.72;
+}
+.pl-sheet__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-5) calc(var(--space-6) + var(--ion-safe-area-bottom, 0px));
+}
