@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pulse-dev",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-lc", ". ~/.nvm/nvm.sh && npm run dev -- --port 5173 --strictPort"],
+      "port": 5173
+    }
+  ]
+}

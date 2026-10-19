@@ -1,0 +1,582 @@
+/*
+ * Pulse components, rebuilt on Ionic primitives and styled only with tokens.
+ * Lime (accent) appears only on: the primary button, progress fills,
+ * completed days, the active-set border and the active-nav marker.
+ */
+
+/* ---------- Icon ---------- */
+.pl-ico {
+  width: var(--size-icon);
+  height: var(--size-icon);
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+/* ---------- Button (IonButton) ---------- */
+ion-button.pl-btn {
+  --border-radius: var(--radius-pill);
+  --padding-start: var(--space-6);
+  --padding-end: var(--space-6);
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --border-width: 1px;
+  --border-style: solid;
+  --border-color: transparent;
+  --box-shadow: none;
+  --background: transparent;
+  --background-hover: transparent;
+  --background-hover-opacity: 0;
+  --background-focused: transparent;
+  --background-focused-opacity: 0;
+  --background-activated: var(--surface-overlay);
+  --background-activated-opacity: 1;
+  --color: var(--text);
+  --color-hover: var(--color);
+  --color-focused: var(--color);
+  --color-activated: var(--color);
+  --ripple-color: transparent;
+  --transition: background-color var(--motion-press);
+  margin: 0;
+  height: var(--size-tap);
+  min-height: var(--size-tap);
+  font: var(--type-body-strong);
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 1;
+}
+ion-button.pl-btn:hover,
+ion-button.pl-btn.ion-activated {
+  opacity: 1;
+}
+ion-button.pl-btn.ion-focused::part(native) {
+  box-shadow: var(--focus-ring);
+}
+ion-button.pl-btn.button-disabled {
+  opacity: 0.5;
+}
+ion-button.pl-btn .pl-btn__inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+ion-button.pl-btn--primary {
+  --background: var(--accent);
+  --background-activated: var(--accent-pressed);
+  --color: var(--on-accent);
+}
+ion-button.pl-btn--secondary {
+  --background: var(--surface-overlay);
+  --background-activated: var(--track);
+}
+ion-button.pl-btn--ghost {
+  --border-color: var(--border-strong);
+}
+ion-button.pl-btn--stop {
+  --border-color: var(--border-strong);
+  --color: var(--danger);
+}
+ion-button.pl-btn--danger {
+  --background: var(--danger);
+  --background-activated: var(--danger);
+  --color: var(--on-danger);
+}
+ion-button.pl-btn--plain {
+  --color: var(--text-secondary);
+  --background-activated: transparent;
+}
+ion-button.pl-btn--lg {
+  height: 56px;
+  min-height: 56px;
+  font-size: 17px;
+  line-height: 24px;
+}
+ion-button.pl-btn--block {
+  display: block;
+  width: 100%;
+}
+ion-button.pl-btn--icon {
+  --padding-start: 0;
+  --padding-end: 0;
+  width: var(--size-tap);
+  min-width: var(--size-tap);
+}
+
+/* ---------- Card ---------- */
+.pl-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+.pl-card--hero {
+  padding: var(--space-5);
+}
+.pl-card--raised {
+  background: var(--surface-raised);
+}
+.pl-card--xl {
+  border-radius: var(--radius-xl);
+}
+.pl-card--active {
+  background: var(--surface-raised);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: calc(var(--space-4) - 1px);
+}
+.pl-card--flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ---------- Chip (IonButton with aria-pressed) ---------- */
+ion-button.pl-chip {
+  --border-radius: var(--radius-pill);
+  --padding-start: var(--space-4);
+  --padding-end: var(--space-4);
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --border-width: 1px;
+  --border-style: solid;
+  --border-color: var(--border-strong);
+  --background: transparent;
+  --background-hover-opacity: 0;
+  --background-focused-opacity: 0;
+  --background-activated-opacity: 0;
+  --color: var(--text-secondary);
+  --color-hover: var(--color);
+  --color-focused: var(--color);
+  --color-activated: var(--color);
+  --box-shadow: none;
+  --transition: background-color var(--motion-press);
+  margin: 0;
+  height: 44px;
+  min-height: 44px;
+  flex: none;
+  font: 500 15px/22px var(--font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  opacity: 1;
+}
+ion-button.pl-chip:hover,
+ion-button.pl-chip.ion-activated {
+  opacity: 1;
+}
+ion-button.pl-chip.ion-focused::part(native) {
+  box-shadow: var(--focus-ring);
+}
+ion-button.pl-chip--selected {
+  --background: var(--text);
+  --border-color: var(--text);
+  --color: var(--on-accent);
+  font-weight: 600;
+}
+.pl-chip-row {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-right: calc(-1 * var(--space-5));
+  padding-right: var(--space-5);
+  -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
+  mask-image: linear-gradient(to right, #000 88%, transparent);
+}
+.pl-chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- Segmented (IonSegment) ---------- */
+ion-segment.pl-seg {
+  --background: var(--surface);
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+}
+ion-segment.pl-seg ion-segment-button {
+  --background: transparent;
+  --background-checked: var(--text);
+  --background-hover: transparent;
+  --background-focused: transparent;
+  --background-focused-opacity: 0;
+  --border-radius: var(--radius-pill);
+  --border-width: 0;
+  --color: var(--text-secondary);
+  --color-checked: var(--on-accent);
+  --color-hover: var(--text-secondary);
+  --indicator-color: transparent;
+  --indicator-box-shadow: none;
+  --padding-start: var(--space-3);
+  --padding-end: var(--space-3);
+  flex: 1;
+  min-height: 44px;
+  margin: 0;
+  border-radius: var(--radius-pill);
+  font: var(--type-body-strong);
+  letter-spacing: 0;
+  text-transform: none;
+  transition: background-color var(--motion-press), color var(--motion-press);
+}
+ion-segment.pl-seg ion-segment-button::before {
+  display: none;
+}
+ion-segment.pl-seg ion-segment-button.ion-focused {
+  box-shadow: var(--focus-ring);
+}
+
+/* ---------- ListRow (IonItem) ---------- */
+ion-item.pl-listrow {
+  --background: var(--surface);
+  --background-hover: var(--surface);
+  --background-hover-opacity: 0;
+  --background-activated: var(--surface-raised);
+  --background-activated-opacity: 1;
+  --background-focused: var(--surface);
+  --background-focused-opacity: 0;
+  --border-color: var(--border-subtle);
+  --border-width: 1px;
+  --border-style: solid;
+  --border-radius: var(--radius-md);
+  --color: var(--text);
+  --min-height: 72px;
+  --padding-start: var(--space-4);
+  --padding-end: 0;
+  --inner-padding-end: var(--space-4);
+  --inner-border-width: 0;
+  --ripple-color: transparent;
+  --detail-icon-opacity: 0;
+}
+ion-item.pl-listrow.ion-focused::part(native) {
+  box-shadow: var(--focus-ring);
+}
+ion-item.pl-listrow--dashed {
+  --background: transparent;
+  --border-color: var(--border-strong);
+  --border-width: 2px;
+  --border-style: dashed;
+}
+.pl-listrow__body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) 0;
+}
+.pl-listrow__main {
+  flex: 1;
+  min-width: 0;
+}
+.pl-listrow__title {
+  font: var(--type-title-sm);
+}
+.pl-listrow__end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+}
+.pl-well {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface-overlay);
+  color: var(--text);
+}
+
+/* ---------- StatTile ---------- */
+.pl-stat {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+.pl-stat--overlay {
+  background: var(--surface-overlay);
+  border-color: var(--surface-overlay);
+}
+.pl-stat__label {
+  font: var(--type-caption);
+  color: var(--text-secondary);
+}
+.pl-stat__value {
+  font: var(--type-numeric-lg);
+  letter-spacing: var(--type-numeric-lg-tracking);
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--space-1);
+}
+.pl-stat__unit {
+  font: 500 15px/22px var(--font-sans);
+  color: var(--text-secondary);
+  margin-left: var(--space-1);
+  letter-spacing: 0;
+}
+.pl-stat__delta {
+  font: 600 13px/18px var(--font-sans);
+  color: var(--accent);
+  margin-top: var(--space-1);
+}
+.pl-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+/* ---------- ProgressRing ---------- */
+.pl-ring {
+  position: relative;
+  width: var(--size-ring);
+  height: var(--size-ring);
+  flex: none;
+}
+.pl-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.pl-ring__track {
+  fill: none;
+  stroke: var(--track);
+  stroke-width: 12;
+}
+.pl-ring__fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 12;
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--motion-fill);
+}
+.pl-ring__label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: var(--type-numeric-lg);
+  letter-spacing: var(--type-numeric-lg-tracking);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- ProgressBar and MacroBar ---------- */
+.pl-bar {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--track);
+  overflow: hidden;
+}
+.pl-bar__fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  transition: width var(--motion-fill);
+}
+.pl-macros {
+  display: flex;
+  gap: var(--space-4);
+}
+.pl-macro {
+  flex: 1;
+  min-width: 0;
+}
+.pl-macro__name {
+  font: var(--type-caption);
+  color: var(--text-secondary);
+}
+.pl-macro__val {
+  font: var(--type-body-strong);
+  font-variant-numeric: tabular-nums;
+}
+.pl-macro .pl-bar {
+  margin-top: var(--space-2);
+}
+
+/* ---------- Stepper ---------- */
+.pl-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+.pl-stepper ion-button.pl-btn {
+  --border-radius: var(--radius-md);
+}
+.pl-stepper__val {
+  flex: 1;
+  text-align: center;
+  font: var(--type-numeric-lg);
+  letter-spacing: var(--type-numeric-lg-tracking);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- WeekStrip ---------- */
+.pl-week {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pl-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+  color: var(--text-muted);
+}
+.pl-day[aria-current='date'] {
+  color: var(--text);
+}
+.pl-dot {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface-overlay);
+  color: var(--text-muted);
+}
+.pl-dot .pl-ico {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5;
+}
+.pl-dot--done {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.pl-dot--today {
+  background: transparent;
+  border: 2px solid var(--accent);
+}
+.pl-dot--upcoming {
+  background: transparent;
+  border: 2px solid var(--border-subtle);
+}
+
+/* ---------- ChartBars ---------- */
+.pl-chart {
+  position: relative;
+  height: 104px;
+}
+.pl-chart__goal {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 2px dashed var(--text-muted);
+}
+.pl-chart__cols {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+.pl-chart__col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+.pl-chart__bar {
+  width: 100%;
+  min-height: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--chart-bar);
+  transition: height var(--motion-fill);
+}
+.pl-chart__bar--now {
+  background: var(--accent);
+}
+.pl-chart__axis {
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+  color: var(--text-muted);
+}
+.pl-chart__axis--now {
+  color: var(--text);
+}
+.pl-chart__value {
+  font: 700 13px/18px var(--font-sans);
+  color: var(--text);
+}
+
+/* ---------- BottomNav (IonTabBar) ---------- */
+ion-tab-bar.pl-nav {
+  --background: var(--surface);
+  --border: 1px solid var(--border-subtle);
+  --color: var(--text-muted);
+  --color-selected: var(--text);
+  height: calc(var(--size-nav) + var(--ion-safe-area-bottom, 0px));
+}
+ion-tab-bar.pl-nav ion-tab-button {
+  --color: var(--text-muted);
+  --color-selected: var(--text);
+  --background-focused: transparent;
+  --background-focused-opacity: 0;
+  --ripple-color: transparent;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  position: relative;
+  min-height: var(--size-tap);
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+}
+ion-tab-bar.pl-nav ion-tab-button.ion-focused {
+  box-shadow: inset var(--focus-ring);
+}
+.pl-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+.pl-nav__marker {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 24px;
+  height: 3px;
+  margin-left: -12px;
+  border-radius: 0 0 3px 3px;
+  background: var(--accent);
+  visibility: hidden;
+}
+ion-tab-button.tab-selected .pl-nav__marker {
+  visibility: visible;
+}
+
+/* ---------- Toggle (IonToggle) ---------- */
+/* On-state uses the filled-selection rule (text fill, on-accent handle), not lime. */
+ion-toggle.pl-toggle {
+  --track-background: var(--surface-overlay);
+  --track-background-checked: var(--text);
+  --handle-background: var(--text-secondary);
+  --handle-background-checked: var(--on-accent);
+  --handle-width: 24px;
+  --handle-height: 24px;
+  --handle-spacing: 4px;
+  --handle-box-shadow: none;
+  --border-radius: var(--radius-pill);
+  padding: 6px 0; /* extends the 32px switch's hit area to 44px */
+}
+ion-toggle.pl-toggle::part(track) {
+  width: 52px;
+  height: 32px;
+  border: 1px solid var(--border-strong);
+}
+ion-toggle.pl-toggle.ion-focused::part(track) {
+  box-shadow: var(--focus-ring);
+}
