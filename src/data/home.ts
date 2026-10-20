@@ -157,6 +157,8 @@ export interface NewActivity {
   matchType?: MatchType;
   wins?: number;
   losses?: number;
+  /** When it happened; defaults to now. Set for entries added to a past day. */
+  loggedAt?: string;
 }
 
 export async function logActivity(userId: string, a: NewActivity) {
@@ -172,6 +174,7 @@ export async function logActivity(userId: string, a: NewActivity) {
       match_type: a.matchType ?? null,
       wins: a.wins ?? null,
       losses: a.losses ?? null,
+      ...(a.loggedAt ? { logged_at: a.loggedAt } : {}),
     }),
   );
 }

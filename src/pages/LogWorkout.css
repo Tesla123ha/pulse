@@ -1,0 +1,69 @@
+.logex {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.logex__sets {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.logex__set {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.logex__set--off .logex__label {
+  color: var(--text-muted);
+}
+.logex__label {
+  flex: 1;
+  min-width: 0;
+  font: var(--type-body);
+  color: var(--text-secondary);
+}
+ion-button.pl-btn.logex__add {
+  --padding-start: 0;
+  align-self: flex-start;
+  height: 44px;
+  min-height: 44px;
+}
+
+/* Set include toggle: 44px hit area, 28px box */
+.setcheck {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: calc(-1 * var(--space-2));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.setcheck__box {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border-strong);
+  color: var(--on-accent);
+}
+.setcheck--on .setcheck__box {
+  background: var(--text);
+  border-color: var(--text);
+}
+.setcheck:focus-visible {
+  outline: none;
+}
+.setcheck:focus-visible .setcheck__box {
+  box-shadow: var(--focus-ring);
+}
+
+.logworkout-footer {
+  flex-direction: column;
+}

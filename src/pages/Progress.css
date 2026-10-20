@@ -88,3 +88,11 @@
   box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text);
   border-color: transparent;
 }
+
+ion-button.pl-btn.cal__log {
+  --padding-start: var(--space-3);
+  --padding-end: 0;
+  height: 44px;
+  min-height: 44px;
+  margin: -10px 0;
+}

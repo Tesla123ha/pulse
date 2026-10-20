@@ -27,6 +27,7 @@ import KitProgress from './pages/kit/KitProgress';
 import KitProfile from './pages/kit/KitProfile';
 import Session from './pages/Session';
 import Finish from './pages/Finish';
+import LogWorkout from './pages/LogWorkout';
 import Workouts from './pages/Workouts';
 import Progress from './pages/Progress';
 import Profile from './pages/Profile';
@@ -109,6 +110,9 @@ const SignedIn: React.FC = () => (
     </Route>
     <Route exact path="/finish">
       <Finish />
+    </Route>
+    <Route exact path="/log-workout">
+      <LogWorkout />
     </Route>
     {DEV_ROUTES}
     <Route exact path="/">

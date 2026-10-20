@@ -16,6 +16,7 @@ import {
 import type { ActivityLogRow, Units } from '../../lib/database.types';
 import { formatDecimal2, formatInt } from '../../lib/format';
 import { formatClock } from '../../lib/session';
+import { formatShortDate, fromDateKey, middayOf } from '../../lib/dates';
 import { displayToKm, distanceUnit, kmToDisplay } from '../../lib/units';
 
 export interface QuickLogSheetProps {
@@ -24,6 +25,8 @@ export interface QuickLogSheetProps {
   units: Units;
   onDismiss: () => void;
   onSave: (v: NewActivity) => Promise<void>;
+  /** YYYY-MM-DD of a past day to log to; omitted logs it now. */
+  day?: string;
 }
 
 const VENUES = ['Pool', 'Open water'] as const;
@@ -38,7 +41,7 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
 );
 
 /** Bottom sheet that logs one activity, prefilled with the last entry of that type. */
-const QuickLogSheet: React.FC<QuickLogSheetProps> = ({ activity, last, units, onDismiss, onSave }) => {
+const QuickLogSheet: React.FC<QuickLogSheetProps> = ({ activity, last, units, onDismiss, onSave, day }) => {
   const [minutes, setMinutes] = useState(30);
   const [distance, setDistance] = useState(0); // display units: km/mi for runs, m/yd for swims
   const [pace, setPace] = useState(330); // display seconds per km or mile
@@ -79,7 +82,7 @@ const QuickLogSheet: React.FC<QuickLogSheetProps> = ({ activity, last, units, on
   const label = activity.noun;
 
   const payload = (): NewActivity => {
-    const base = { type: activity.type, durationMin, kcal };
+    const base = { type: activity.type, durationMin, kcal, loggedAt: day ? middayOf(day).toISOString() : undefined };
     if (activity.kind === 'run') {
       const km = Math.round(displayToKm(distance, units) * 100) / 100;
       return { ...base, distanceKm: km, paceSecPerKm: Math.round(paceFromDisplay(pace, units)) };
@@ -113,6 +116,7 @@ const QuickLogSheet: React.FC<QuickLogSheetProps> = ({ activity, last, units, on
     activity.kind === 'run'
       ? `${formatClock(Math.round(runSeconds))} · About ${formatInt(kcal)} kcal burned`
       : `About ${formatInt(kcal)} kcal burned`;
+  const when = day ? `${formatShortDate(fromDateKey(day))} · ` : '';
 
   return (
     <Sheet isOpen onDismiss={onDismiss} labelledBy="quicklog-title">
@@ -120,7 +124,10 @@ const QuickLogSheet: React.FC<QuickLogSheetProps> = ({ activity, last, units, on
         <h2 id="quicklog-title" className="t-title-md">
           Log {label}
         </h2>
-        <p className="t-cap">{summary}</p>
+        <p className="t-cap">
+          {when}
+          {summary}
+        </p>
       </div>
 
       {activity.kind === 'run' && (

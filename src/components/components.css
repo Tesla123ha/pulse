@@ -674,3 +674,35 @@ ion-modal.pl-sheet {
   outline: none;
   box-shadow: var(--focus-ring);
 }
+
+/* ---------- NumberField ---------- */
+.pl-numfield {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.pl-numfield input {
+  width: 64px;
+  height: 44px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-overlay);
+  color: var(--text);
+  font: var(--type-body-strong);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.pl-numfield input:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.pl-numfield input:disabled {
+  color: var(--text-muted);
+  border-color: var(--border-subtle);
+}
+.pl-numfield__suffix {
+  font: var(--type-caption);
+  color: var(--text-secondary);
+  min-width: 22px;
+}

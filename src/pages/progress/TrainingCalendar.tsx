@@ -18,7 +18,9 @@ const TrainingCalendar: React.FC<{
   units: Units;
   now: Date;
   onDelete: (a: ProgressActivity) => void;
-}> = ({ activity, units, now, onDelete }) => {
+  /** Add an activity or workout to the selected day (YYYY-MM-DD). */
+  onLog: (day: string) => void;
+}> = ({ activity, units, now, onDelete, onLog }) => {
   const today = startOfDay(now);
   const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [selected, setSelected] = useState(() => dateKey(today));
@@ -101,7 +103,13 @@ const TrainingCalendar: React.FC<{
       </div>
 
       <div className="section" aria-live="polite">
-        <h3 className="t-cap">{dayHeading(selectedDate, today)}</h3>
+        <div className="sec-head">
+          <h3 className="t-cap">{dayHeading(selectedDate, today)}</h3>
+          <Button variant="plain" className="cal__log" onClick={() => onLog(selected)}>
+            <Icon name="plus" size={20} />
+            Log activity
+          </Button>
+        </div>
         {dayItems.length === 0 ? (
           <p className="t-cap t-muted">No activity logged.</p>
         ) : (

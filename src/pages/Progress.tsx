@@ -1,4 +1,4 @@
-import { IonContent, IonPage, IonRefresher, IonRefresherContent } from '@ionic/react';
+import { IonContent, IonPage, IonRefresher, IonRefresherContent, useIonRouter } from '@ionic/react';
 import { useCallback, useState } from 'react';
 import { useUserId } from '../auth/AuthProvider';
 import { Button, Card } from '../components';
@@ -6,6 +6,10 @@ import { deleteActivity, loadProgress, type ProgressActivity } from '../data/pro
 import { useLoader } from '../data/useLoader';
 import type { Range } from '../lib/progress';
 import DeleteActivitySheet from './progress/DeleteActivitySheet';
+import LogDaySheet from './progress/LogDaySheet';
+import QuickLogSheet from './home/QuickLogSheet';
+import { logActivity } from '../data/home';
+import type { ActivityMeta } from '../lib/activity';
 import ProgressView from './progress/ProgressView';
 import './Progress.css';
 
@@ -15,6 +19,9 @@ const Progress: React.FC = () => {
   const { data, error, loading, reload } = useLoader(load);
   const [range, setRange] = useState<Range>('Week');
   const [deleting, setDeleting] = useState<ProgressActivity | null>(null);
+  const router = useIonRouter();
+  const [logDay, setLogDay] = useState<string | null>(null);
+  const [quick, setQuick] = useState<{ day: string; activity: ActivityMeta } | null>(null);
 
   return (
     <IonPage>
@@ -39,9 +46,33 @@ const Progress: React.FC = () => {
             </Card>
           )}
           {data && (
-            <ProgressView data={data} range={range} onRange={setRange} now={new Date()} onDelete={setDeleting} />
+            <ProgressView data={data} range={range} onRange={setRange} now={new Date()} onDelete={setDeleting} onLog={setLogDay} />
           )}
         </div>
+        <LogDaySheet
+          day={logDay}
+          onDismiss={() => setLogDay(null)}
+          onWorkout={(day) => {
+            setLogDay(null);
+            router.push(`/log-workout?day=${day}`);
+          }}
+          onActivity={(day, activity) => {
+            setLogDay(null);
+            setQuick({ day, activity });
+          }}
+        />
+        <QuickLogSheet
+          activity={quick?.activity ?? null}
+          day={quick?.day}
+          last={quick ? data?.activity.find((a) => a.type === quick.activity.type) : undefined}
+          units={data?.profile.units ?? 'metric'}
+          onDismiss={() => setQuick(null)}
+          onSave={async (v) => {
+            await logActivity(userId, v);
+            setQuick(null);
+            await reload();
+          }}
+        />
         <DeleteActivitySheet
           activity={deleting}
           onDismiss={() => setDeleting(null)}

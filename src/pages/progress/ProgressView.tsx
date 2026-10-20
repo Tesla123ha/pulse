@@ -21,6 +21,8 @@ export interface ProgressViewProps {
   now: Date;
   /** Asks to delete one logged activity (the container confirms first). */
   onDelete: (a: ProgressActivity) => void;
+  /** Add to a day from the calendar. */
+  onLog: (day: string) => void;
 }
 
 /** Whole hours for the narrow year columns: "10h". */
@@ -33,7 +35,7 @@ const GOAL_LABEL: Record<Range, (min: number) => string> = {
 };
 
 /** Progress for the selected range. Pure: everything comes from props. */
-const ProgressView: React.FC<ProgressViewProps> = ({ data, range, onRange, now, onDelete }) => {
+const ProgressView: React.FC<ProgressViewProps> = ({ data, range, onRange, now, onDelete, onLog }) => {
   const units = data.profile.units;
   const chart = activeTime(data.activity, range, now, data.profile.active_goal_min);
   const inPeriod = between(data.activity, chart.start, chart.end);
@@ -135,7 +137,7 @@ const ProgressView: React.FC<ProgressViewProps> = ({ data, range, onRange, now, 
         )}
       </section>
 
-      <TrainingCalendar activity={data.activity} units={units} now={now} onDelete={onDelete} />
+      <TrainingCalendar activity={data.activity} units={units} now={now} onDelete={onDelete} onLog={onLog} />
     </>
   );
 };
