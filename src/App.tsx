@@ -36,6 +36,7 @@ import { MotionProvider, renderBottomNav } from './components';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
+import { SyncProvider } from './offline/SyncProvider';
 
 setupIonicReact({ mode: 'ios' });
 
@@ -80,7 +81,12 @@ const SignedOut: React.FC = () => (
 const Routes: React.FC = () => {
   const { session, loading } = useAuth();
   if (loading) return null;
-  return session ? <SignedIn /> : <SignedOut />;
+  if (!session) return <SignedOut />;
+  return (
+    <SyncProvider>
+      <SignedIn />
+    </SyncProvider>
+  );
 };
 
 /**
