@@ -1,4 +1,5 @@
 import { IonButton } from '@ionic/react';
+import { m } from 'motion/react';
 import type { ComponentProps, ReactNode } from 'react';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'stop' | 'danger' | 'plain';
@@ -13,14 +14,27 @@ export interface ButtonProps extends Omit<IonButtonProps, 'color' | 'fill' | 'si
   block?: boolean;
   /** Square icon-only button. Requires `aria-label`. */
   iconOnly?: boolean;
+  /** Spring hover and press feedback. Opt-in; scaling is skipped when the user prefers reduced motion. */
+  feedback?: boolean;
   children?: ReactNode;
 }
+
+const MotionIonButton = m.create(IonButton);
+const PRESS_SPRING = { type: 'spring', stiffness: 520, damping: 32 } as const;
+// Motion types these handlers differently from React's DOM versions; Pulse never passes them to a Button
+type MotionClashes = 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart';
+
+const HOVER = { scale: 1.03 };
+// Full-width buttons would grow past their card's padding, so they scale less
+const HOVER_BLOCK = { scale: 1.01 };
+const TAP = { scale: 0.97 };
 
 const Button: React.FC<ButtonProps> = ({
   variant = 'secondary',
   size = 'md',
   block,
   iconOnly,
+  feedback,
   className,
   children,
   ...rest
@@ -38,9 +52,24 @@ const Button: React.FC<ButtonProps> = ({
   ]
     .filter(Boolean)
     .join(' ');
+  const content = <span className="pl-btn__inner">{children}</span>;
+  if (feedback) {
+    return (
+      <MotionIonButton
+        {...(rest as Omit<typeof rest, MotionClashes>)}
+        fill="clear"
+        className={cls}
+        whileHover={block ? HOVER_BLOCK : HOVER}
+        whileTap={TAP}
+        transition={PRESS_SPRING}
+      >
+        {content}
+      </MotionIonButton>
+    );
+  }
   return (
     <IonButton {...rest} fill="clear" className={cls}>
-      <span className="pl-btn__inner">{children}</span>
+      {content}
     </IonButton>
   );
 };

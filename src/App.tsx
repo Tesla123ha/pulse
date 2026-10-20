@@ -32,7 +32,7 @@ import Workouts from './pages/Workouts';
 import Progress from './pages/Progress';
 import Profile from './pages/Profile';
 import Money from './pages/Money';
-import { renderBottomNav } from './components';
+import { MotionProvider, renderBottomNav } from './components';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
@@ -136,11 +136,13 @@ const App: React.FC = () => (
         void supabase.auth.signOut().finally(() => window.location.assign('/auth'));
       }}
     >
-      <AuthProvider>
-        <IonReactRouter>
-          <Routes />
-        </IonReactRouter>
-      </AuthProvider>
+      <MotionProvider>
+        <AuthProvider>
+          <IonReactRouter>
+            <Routes />
+          </IonReactRouter>
+        </AuthProvider>
+      </MotionProvider>
     </ErrorBoundary>
   </IonApp>
 );
