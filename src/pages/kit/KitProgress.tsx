@@ -9,7 +9,8 @@ import ProgressView from '../progress/ProgressView';
 import '../Progress.css';
 
 // Dev-only: Progress with the artboard's week (W 50, T 47, F 0, S 76, S 40, M 60, T 38 min)
-// plus a previous week, some matches and personal records.
+// plus a previous week, the last few months, some matches and personal records.
+// ?empty=1 shows a user with no activity at all (the month view's empty state).
 const now = new Date();
 let n = 0;
 const act = (daysAgo: number, type: ActivityType, minutes: number, extra: Partial<ProgressActivity> = {}): ProgressActivity => ({
@@ -52,10 +53,12 @@ const rec = (id: string, name: string, value: number, unit: PersonalRecordRow['u
   achieved_on: dateKey(addDays(now, -daysAgo)),
 });
 
+const empty = new URLSearchParams(window.location.search).get('empty') === '1';
+
 const data: ProgressData = {
   profile: { units: 'metric', active_goal_min: 45 },
-  activity,
-  sessionsEndedAt: activity.filter((a) => a.type === 'lift').map((a) => a.logged_at),
+  activity: empty ? [] : activity,
+  sessionsEndedAt: (empty ? [] : activity).filter((a) => a.type === 'lift').map((a) => a.logged_at),
   records: [
     rec('r1', 'Incline DB Bench Press', 12, 'stack', 22),
     rec('r2', 'Incline DB Bench Press', 13, 'stack', 5),

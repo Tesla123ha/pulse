@@ -34,6 +34,10 @@
   --chart-bar: #7f8b84;
   --track: #2e3532;
 
+  /* Color: heatmap intensity. Level 3 is --accent; --text labels pass 4.5:1 on both. */
+  --heat-1: #26302b;
+  --heat-2: #3f5446;
+
   /* Type: families */
   --font-display: "Bricolage Grotesque", "DM Sans", system-ui, sans-serif;
   --font-sans: "DM Sans", system-ui, -apple-system, sans-serif;

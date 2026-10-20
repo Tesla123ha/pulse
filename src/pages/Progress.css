@@ -35,31 +35,41 @@
   font-size: 13px;
 }
 
-/* Training calendar */
+/* Month heatmap (and the Training calendar, same cells) */
 .cal {
-  padding: var(--space-4) var(--space-3);
+  padding: var(--space-3) 0 0;
+}
+.cal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
 }
 .cal__title {
-  padding: 0 var(--space-1) var(--space-3);
+  padding-left: var(--space-1);
 }
 .cal__grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  row-gap: var(--space-1);
-  justify-items: center;
+  gap: 3px;
 }
 .cal__weekday {
+  text-align: center;
   font: var(--type-label);
   letter-spacing: var(--type-label-tracking);
   color: var(--text-muted);
-  padding-bottom: var(--space-2);
+  padding-bottom: var(--space-1);
 }
 .cal__day {
-  width: 44px;
+  width: 100%;
+  min-width: 0;
   height: 44px;
+  padding: 0;
   border: 2px solid transparent;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
   color: var(--text);
   font: 600 15px/1 var(--font-sans);
   font-variant-numeric: tabular-nums;
@@ -74,19 +84,74 @@
   outline: none;
   box-shadow: var(--focus-ring);
 }
-.cal__day--active {
+.cal__day--l1,
+.cal__swatch--l1 {
+  background: var(--heat-1);
+}
+.cal__day--l2,
+.cal__swatch--l2 {
+  background: var(--heat-2);
+}
+.cal__day--l3,
+.cal__swatch--l3 {
   background: var(--accent);
+}
+.cal__day--l3 {
   color: var(--on-accent);
+  box-shadow: none;
+}
+.cal__day--l1,
+.cal__day--l2 {
+  box-shadow: none;
 }
 .cal__day--today {
   border-color: var(--accent);
 }
+.cal__day--l3.cal__day--today {
+  box-shadow: inset 0 0 0 2px var(--on-accent);
+}
 .cal__day--selected {
   border-color: var(--text);
 }
-.cal__day--active.cal__day--selected {
-  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text);
+.cal__day--l3.cal__day--selected {
+  box-shadow: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--text);
   border-color: transparent;
+}
+.cal__empty {
+  padding: var(--space-3) var(--space-1) 0;
+}
+.cal__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding-top: var(--space-3);
+}
+.cal__scale {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.cal__swatches {
+  display: inline-flex;
+  gap: 3px;
+}
+.cal__swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+.cal__swatch--l1,
+.cal__swatch--l2,
+.cal__swatch--l3 {
+  box-shadow: none;
+}
+@media (max-width: 359px) {
+  .cal__grid {
+    gap: 2px;
+  }
 }
 
 ion-button.pl-btn.cal__log {
