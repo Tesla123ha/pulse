@@ -36,7 +36,7 @@ import { MotionProvider, renderBottomNav } from './components';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
-import { SyncProvider } from './offline/SyncProvider';
+import { SyncProvider, useSync } from './offline/SyncProvider';
 
 setupIonicReact({ mode: 'ios' });
 
@@ -77,6 +77,31 @@ const SignedOut: React.FC = () => (
   </IonRouterOutlet>
 );
 
+/** Holds the signed-in routes back until the local database is open, so data code can call getDb(). */
+const DbGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { db } = useSync();
+  if (!db) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        style={{
+          minHeight: '100dvh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--canvas)',
+          color: 'var(--text-secondary)',
+          font: 'var(--type-body)',
+        }}
+      >
+        Loading
+      </div>
+    );
+  }
+  return <>{children}</>;
+};
+
 /** Session guard: routes below render only with a signed-in session. */
 const Routes: React.FC = () => {
   const { session, loading } = useAuth();
@@ -84,7 +109,9 @@ const Routes: React.FC = () => {
   if (!session) return <SignedOut />;
   return (
     <SyncProvider>
-      <SignedIn />
+      <DbGate>
+        <SignedIn />
+      </DbGate>
     </SyncProvider>
   );
 };

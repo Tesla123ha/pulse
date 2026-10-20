@@ -1,7 +1,8 @@
 import { IonContent, IonInput, IonPage } from '@ionic/react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Button, Segmented, Stagger, StaggerItem } from '../components';
 import { supabase } from '../lib/supabase';
+import { isOnline, onNetworkChange } from '../offline/network';
 import './Auth.css';
 
 const MODES = ['Sign in', 'Sign up'] as const;
@@ -16,8 +17,12 @@ const Auth: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
+  const [online, setOnline] = useState(isOnline());
+  useEffect(() => onNetworkChange(setOnline), []);
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!online) return;
     setError(null);
     setNote(null);
     if (!email || !password) {
@@ -98,6 +103,11 @@ const Auth: React.FC = () => {
                 </span>
               </label>
 
+              {!online && (
+                <p className="auth__note" role="status">
+                  You are offline. Connect to sign in.
+                </p>
+              )}
               {error && (
                 <p className="auth__error" role="alert">
                   {error}
@@ -109,7 +119,7 @@ const Auth: React.FC = () => {
                 </p>
               )}
 
-              <Button variant="primary" size="lg" block type="submit" disabled={busy}>
+              <Button variant="primary" size="lg" block type="submit" disabled={busy || !online}>
                 {signUp ? 'Create account' : 'Sign in'}
               </Button>
             </form>

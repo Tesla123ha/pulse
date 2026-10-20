@@ -85,6 +85,16 @@ export function closeUserDb(): void {
   current = null;
 }
 
+/** Closes and permanently deletes one user's local database. Used after a confirmed sign out. */
+export async function deleteUserDb(userId: string): Promise<void> {
+  const name = `pulse-${userId}`;
+  if (current && current.name === name) {
+    current.close();
+    current = null;
+  }
+  await Dexie.delete(name);
+}
+
 /** The open database for the signed-in user. Data modules call this outside React. */
 export function getDb(): PulseDB {
   if (!current) throw new Error('The local database is not open yet.');

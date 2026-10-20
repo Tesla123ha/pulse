@@ -6,7 +6,8 @@ import { exportMyData, loadProfile, updateProfile } from '../data/profile';
 import { errorMessage, useLoader } from '../data/useLoader';
 import { dateKey } from '../lib/dates';
 import type { EditField } from '../lib/profile';
-import { supabase } from '../lib/supabase';
+import { useSync } from '../offline/SyncProvider';
+import SignOutSheet from './profile/SignOutSheet';
 import pkg from '../../package.json';
 import EditSheet from './profile/EditSheet';
 import PrivacySheet from './profile/PrivacySheet';
@@ -25,7 +26,9 @@ function download(name: string, text: string) {
 
 const Profile: React.FC = () => {
   const userId = useUserId();
-  const { session } = useAuth();
+  const { session, signOut } = useAuth();
+  const { pending, failed } = useSync();
+  const [confirmOut, setConfirmOut] = useState(false);
   const email = session?.user.email ?? '';
   const load = useCallback(() => loadProfile(userId, email), [userId, email]);
   const { data, error, loading, reload, setData } = useLoader(load);
@@ -37,6 +40,16 @@ const Profile: React.FC = () => {
   const save = async (patch: Parameters<typeof updateProfile>[1]) => {
     const profile = await updateProfile(userId, patch);
     setData((d) => ({ ...d, profile }));
+  };
+
+  const requestSignOut = async () => {
+    if (pending + failed > 0) {
+      setConfirmOut(true);
+      return;
+    }
+    setBusy(true);
+    await signOut();
+    setBusy(false);
   };
 
   return (
@@ -80,16 +93,12 @@ const Profile: React.FC = () => {
                 }
               }}
               onPrivacy={() => setPrivacy(true)}
-              onSignOut={async () => {
-                setBusy(true);
-                await supabase.auth.signOut();
-                setBusy(false);
-              }}
+              onSignOut={requestSignOut}
             />
           )}
           {/* If the profile cannot load, still offer a way to sign out. */}
           {error && (
-            <Button variant="ghost" block onClick={() => void supabase.auth.signOut()}>
+            <Button variant="ghost" block onClick={requestSignOut}>
               Sign out
             </Button>
           )}
@@ -105,6 +114,17 @@ const Profile: React.FC = () => {
             }}
           />
         )}
+        <SignOutSheet
+          isOpen={confirmOut}
+          busy={busy}
+          onDismiss={() => setConfirmOut(false)}
+          onConfirm={async () => {
+            setBusy(true);
+            await signOut();
+            setBusy(false);
+            setConfirmOut(false);
+          }}
+        />
         <PrivacySheet
           isOpen={privacy}
           onDismiss={() => setPrivacy(false)}
