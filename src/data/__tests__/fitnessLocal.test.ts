@@ -11,6 +11,8 @@ import { closeUserDb, deleteUserDb, openUserDb } from '../../offline/db';
 import { deleteActivity, loadProgress } from '../progress';
 import { endSession, loadOrStartSession, logSet } from '../session';
 import { savePastWorkout } from '../pastWorkout';
+import { loadLoadPrefs, setLoadPref } from '../loadPrefs';
+import { displayToStored } from '../../lib/load';
 
 const U = 'u1';
 const ex = {
@@ -37,8 +39,8 @@ describe('fitness data on the local store', () => {
     const d = (await loadOrStartSession(U, { workoutId: 'w1', planWorkoutId: 'pw1' }))!;
     const again = (await loadOrStartSession(U, { workoutId: 'w1', planWorkoutId: 'pw1' }))!;
     expect(again.session.id).toBe(d.session.id);
-    const set = await logSet({ sessionId: d.session.id, exercise: d.exercises[0], setNumber: 1, load: 60, reps: 5 });
-    await expect(logSet({ sessionId: d.session.id, exercise: d.exercises[0], setNumber: 1, load: 60, reps: 5 })).rejects.toThrow();
+    const set = await logSet({ sessionId: d.session.id, exerciseId: 'e1', setNumber: 1, stored: displayToStored(60, 'kg'), reps: 5 });
+    await expect(logSet({ sessionId: d.session.id, exerciseId: 'e1', setNumber: 1, stored: displayToStored(60, 'kg'), reps: 5 })).rejects.toThrow();
     await endSession({ ...d, sets: [set] }, U);
     const { getDb } = await import('../../offline/db');
     const db = getDb();
@@ -58,11 +60,67 @@ describe('fitness data on the local store', () => {
     const { getDb } = await import('../../offline/db');
     await savePastWorkout({
       userId: U, workout: { id: 'w1', exercises: [ex] } as never, day: '2026-01-05', durationMin: 30,
-      sets: [{ exerciseId: 'e1', setNumber: 1, load: 70, reps: 5 }],
+      sets: [{ exerciseId: 'e1', setNumber: 1, stored: displayToStored(70, 'kg'), reps: 5 }],
     });
     const db = getDb();
     expect(await db.workout_sessions.count()).toBe(1);
     expect(await db.set_logs.count()).toBe(2);
     expect((await db.personal_records.toArray())[0].value).toBe(70);
+  });
+
+  it('stores a PL set on a kg exercise as a stack level, and an lb set as kg', async () => {
+    const { getDb } = await import('../../offline/db');
+    const d = (await loadOrStartSession(U, { workoutId: 'w1', planWorkoutId: null }))!;
+    const pl = await logSet({ sessionId: d.session.id, exerciseId: 'e1', setNumber: 1, stored: displayToStored(12, 'pl'), reps: 8 });
+    const lb = await logSet({ sessionId: d.session.id, exerciseId: 'e1', setNumber: 2, stored: displayToStored(100, 'lb'), reps: 8 });
+    expect(await getDb().set_logs.get(pl.id)).toMatchObject({ weight_kg: 0, stack_level: 12 });
+    expect(await getDb().set_logs.get(lb.id)).toMatchObject({ weight_kg: 45.36, stack_level: null });
+  });
+
+  it('records personal bests per kind with no record across kinds', async () => {
+    const { getDb } = await import('../../offline/db');
+    const db = getDb();
+    await db.set_logs.put({ id: 'oldpl', session_id: 'oldS', exercise_id: 'e1', set_number: 2, weight_kg: 0, reps: 5, stack_level: 10, logged_at: '2020-01-02T00:00:00+00:00' } as never);
+    const d = (await loadOrStartSession(U, { workoutId: 'w1', planWorkoutId: null }))!;
+    const a = await logSet({ sessionId: d.session.id, exerciseId: 'e1', setNumber: 1, stored: displayToStored(12, 'pl'), reps: 5 });
+    const b = await logSet({ sessionId: d.session.id, exerciseId: 'e1', setNumber: 2, stored: displayToStored(40, 'kg'), reps: 5 });
+    await endSession({ ...d, sets: [a, b] }, U);
+    // PL 12 beats 10; 40 kg does not beat 50 kg. A heavy PL never counts against kg.
+    expect((await db.personal_records.toArray()).map((r) => [r.unit, r.value])).toEqual([['stack', 12]]);
+  });
+
+  it('sets no record for the first set of a new kind', async () => {
+    const { getDb } = await import('../../offline/db');
+    const d = (await loadOrStartSession(U, { workoutId: 'w1', planWorkoutId: null }))!;
+    const a = await logSet({ sessionId: d.session.id, exerciseId: 'e1', setNumber: 1, stored: displayToStored(200, 'pl'), reps: 5 });
+    await endSession({ ...d, sets: [a] }, U);
+    expect(await getDb().personal_records.count()).toBe(0);
+  });
+
+  it('saves a past workout with mixed kinds', async () => {
+    const { getDb } = await import('../../offline/db');
+    const db = getDb();
+    await savePastWorkout({
+      userId: U, workout: { id: 'w1', exercises: [ex] } as never, day: '2026-01-05', durationMin: 30,
+      sets: [
+        { exerciseId: 'e1', setNumber: 1, stored: displayToStored(60, 'kg'), reps: 5 },
+        { exerciseId: 'e1', setNumber: 2, stored: displayToStored(8, 'pl'), reps: 5 },
+      ],
+    });
+    const rows = await db.set_logs.where('session_id').notEqual('oldS').toArray();
+    expect(rows.map((r) => [r.set_number, r.weight_kg, r.stack_level]).sort()).toEqual([[1, 60, null], [2, 0, 8]]);
+    // 60 kg beats the earlier 50 kg; the PL set is the first of its kind, so no record.
+    expect((await db.personal_records.toArray()).map((r) => [r.unit, r.value])).toEqual([['kg', 60]]);
+  });
+
+  it('remembers a unit locally and queues exactly one outbox op', async () => {
+    const { getDb } = await import('../../offline/db');
+    const db = getDb();
+    await setLoadPref('e1', 'pl');
+    await setLoadPref('e1', 'lb');
+    expect(await loadLoadPrefs()).toEqual({ e1: 'lb' });
+    const ops = (await db.outbox.toArray()).filter((o) => o.table === 'exercise_load_prefs');
+    expect(ops).toHaveLength(1);
+    expect(ops[0]).toMatchObject({ kind: 'upsert', rowKey: `${U}:e1`, row: { unit: 'lb', user_id: U } });
   });
 });

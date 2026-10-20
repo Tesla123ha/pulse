@@ -153,6 +153,14 @@ export type AchievementRow = {
   sort_order: number;
 };
 
+/** The weight unit chosen for one exercise; synced so every device agrees. */
+export type ExerciseLoadPrefRow = {
+  user_id: string;
+  exercise_id: string;
+  unit: 'kg' | 'lb' | 'pl';
+  updated_at: string;
+};
+
 export type UserAchievementRow = {
   user_id: string;
   achievement_id: string;
@@ -238,6 +246,7 @@ export type Database = {
         [Rel<'activity_logs_session_id_fkey', 'session_id', 'workout_sessions'>]
       >;
       personal_records: Table<PersonalRecordRow, 'user_id' | 'name' | 'value' | 'unit'>;
+      exercise_load_prefs: Table<ExerciseLoadPrefRow, 'exercise_id' | 'unit'>;
       achievements: Table<AchievementRow, 'code' | 'name' | 'description' | 'icon'>;
       money_accounts: Table<MoneyAccountRow, 'user_id' | 'name'>;
       money_categories: Table<MoneyCategoryRow, 'kind' | 'name'>;

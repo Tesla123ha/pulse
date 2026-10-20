@@ -15,6 +15,7 @@ import {
 } from '../data/session';
 import { errorMessage, useLoader } from '../data/useLoader';
 import { useNow } from '../data/useNow';
+import { displayToStored } from '../lib/load';
 import { buildModel, exerciseCaption } from '../lib/session';
 import type { WorkoutSessionRow } from '../lib/database.types';
 import SessionView, { SessionHeader } from './session/SessionView';
@@ -121,9 +122,9 @@ const Session: React.FC = () => {
                   if (!m.current) return (x) => x;
                   const row = await logSet({
                     sessionId: d.session.id,
-                    exercise: m.current,
+                    exerciseId: m.current.id,
                     setNumber: m.setsFor(m.current.id).length + 1,
-                    load,
+                    stored: displayToStored(load, m.current.load_unit === 'stack' ? 'pl' : 'kg'),
                     reps,
                   });
                   return (x) => ({ ...x, sets: [...x.sets, row] });

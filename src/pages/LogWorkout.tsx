@@ -9,7 +9,7 @@ import type { WorkoutWithExercises } from '../data/workouts';
 import { dateKey, formatHeaderDate, fromDateKey } from '../lib/dates';
 import type { SetLogRow, Units, WorkoutExerciseRow } from '../lib/database.types';
 import { plural } from '../lib/format';
-import { fromDisplayLoad, loadUnitLabel, storedLoad, toDisplayLoad } from '../lib/load';
+import { displayToStored, fromDisplayLoad, loadUnitLabel, storedLoad, toDisplayLoad } from '../lib/load';
 import { shortTarget } from '../lib/session';
 import './Session.css';
 import './LogWorkout.css';
@@ -170,7 +170,7 @@ const LogWorkout: React.FC = () => {
           .map((r, i) => ({
             exerciseId: ex.id,
             setNumber: i + 1,
-            load: fromDisplayLoad(r.load, ex, data.units),
+            stored: displayToStored(fromDisplayLoad(r.load, ex, data.units), ex.load_unit === 'stack' ? 'pl' : 'kg'),
             reps: r.reps,
           })),
       );

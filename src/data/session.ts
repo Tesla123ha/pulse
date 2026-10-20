@@ -1,11 +1,13 @@
 import { estimateKcal } from '../lib/activity';
 import { dateKey } from '../lib/dates';
 import type { ProfileRow, SetLogRow, WorkoutExerciseRow, WorkoutRow, WorkoutSessionRow } from '../lib/database.types';
-import { storedLoad } from '../lib/load';
+import type { LoadChoice, StoredLoad } from '../lib/load';
 import { buildModel, elapsedSeconds } from '../lib/session';
 import { getDb } from '../offline/db';
 import { localWrite } from '../offline/outbox';
 import { newActivityRow, newPersonalRecordRow, newSessionRow, newSetLogRow } from '../offline/rows';
+import { newBests } from './bests';
+import { loadLoadPrefs } from './loadPrefs';
 import { byTimeDesc } from './sort';
 
 export interface SessionData {
@@ -17,17 +19,20 @@ export interface SessionData {
   /** Recent sets for these exercises from earlier sessions, newest first. */
   history: SetLogRow[];
   units: ProfileRow['units'];
+  /** The weight unit chosen for each exercise, by exercise id. */
+  prefs: Record<string, LoadChoice>;
 }
 
 const OPEN = ['in_progress', 'paused'] as const;
 
 async function loadSession(session: WorkoutSessionRow, userId: string): Promise<SessionData> {
   const db = getDb();
-  const [workout, exercises, sets, profile] = await Promise.all([
+  const [workout, exercises, sets, profile, prefs] = await Promise.all([
     db.workouts.get(session.workout_id),
     db.workout_exercises.where('workout_id').equals(session.workout_id).toArray(),
     db.set_logs.where('session_id').equals(session.id).toArray(),
     db.profiles.get(userId),
+    loadLoadPrefs(),
   ]);
   if (!workout) throw new Error('This workout is not available on this device yet.');
   if (!profile) throw new Error('Your profile is not available yet.');
@@ -38,7 +43,7 @@ async function loadSession(session: WorkoutSessionRow, userId: string): Promise<
         .sort(byTimeDesc)
         .slice(0, 200)
     : [];
-  return { session, workout, exercises, sets, history, units: profile.units };
+  return { session, workout, exercises, sets, history, units: profile.units, prefs };
 }
 
 const findOpen = () => getDb().workout_sessions.where('status').anyOf(...OPEN).first();
@@ -73,21 +78,19 @@ export async function loadOrStartSession(
 
 export async function logSet(input: {
   sessionId: string;
-  exercise: Pick<WorkoutExerciseRow, 'id' | 'load_unit'>;
+  exerciseId: string;
   setNumber: number;
-  /** kg, or stack level for machine exercises */
-  load: number;
+  /** What to store, from displayToStored: kg, or a stack level (PL) */
+  stored: StoredLoad;
   reps: number;
 }): Promise<SetLogRow> {
   const db = getDb();
-  const stack = input.exercise.load_unit === 'stack';
-  const load = Math.round(input.load * 100) / 100;
   const row = newSetLogRow({
     session_id: input.sessionId,
-    exercise_id: input.exercise.id,
+    exercise_id: input.exerciseId,
     set_number: input.setNumber,
-    weight_kg: stack ? 0 : load,
-    stack_level: stack ? load : null,
+    weight_kg: input.stored.weight_kg,
+    stack_level: input.stored.stack_level,
     reps: input.reps,
   });
   await localWrite(db, ['set_logs'], async (w) => {
@@ -187,19 +190,20 @@ export async function endSession(data: SessionData, userId: string): Promise<voi
       });
     }
 
-    // Personal records: a heavier load than any earlier session for that exercise.
+    // Personal records: a heavier load than any earlier session, per kind of set (PL or kg).
     const ids = [...new Set(sets.map((s) => s.exercise_id))];
     const prior = await db.set_logs.where('exercise_id').anyOf(ids).filter((s) => s.session_id !== session.id).toArray();
     for (const id of ids) {
       const ex = exercises.find((e) => e.id === id);
       if (!ex) continue;
-      const best = Math.max(...sets.filter((s) => s.exercise_id === id).map((s) => storedLoad(s, ex)));
-      const previous = prior.filter((p) => p.exercise_id === id).map((p) => storedLoad(p, ex));
-      const previousBest = previous.length ? Math.max(...previous) : 0;
-      if (previousBest > 0 && best > previousBest) {
+      const bests = newBests(
+        sets.filter((s) => s.exercise_id === id),
+        prior.filter((p) => p.exercise_id === id),
+      );
+      for (const b of bests) {
         await w.upsert(
           'personal_records',
-          newPersonalRecordRow({ user_id: userId, name: ex.name, value: best, unit: ex.load_unit, achieved_on: dateKey(now) }),
+          newPersonalRecordRow({ user_id: userId, name: ex.name, value: b.value, unit: b.unit, achieved_on: dateKey(now) }),
         );
       }
     }

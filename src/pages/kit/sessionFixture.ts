@@ -80,5 +80,6 @@ export function sessionFixture(): SessionData {
     ],
     history: [set('old', 'ex3', 3, 22.5, 10)],
     units: 'metric',
+    prefs: {},
   };
 }

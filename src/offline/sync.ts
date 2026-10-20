@@ -1,11 +1,11 @@
 import type { IndexableType } from 'dexie';
 import { App } from '@capacitor/app';
 import { supabase } from '../lib/supabase';
-import { MIRRORED_TABLES, normalizeRow, type MirroredTable, type PulseDB } from './db';
+import { dexieKeyOf, MIRRORED_TABLES, normalizeRow, rowKeyOf, tableConfig, type MirroredTable, type PulseDB } from './db';
 import { onNetworkChange } from './network';
 import { DATA_CHANGED, inflightSeqs, type OutboxOp } from './outbox';
 
-type ErrorClass = 'transient' | 'auth' | 'permanent';
+type ErrorClass = 'transient' | 'auth' | 'missing' | 'permanent';
 
 interface ErrLike {
   message?: string;
@@ -62,9 +62,20 @@ export function onSyncStatus(cb: (s: SyncStatus) => void): () => void {
   return () => void listeners.delete(cb);
 }
 
+/** The table is not on the server (a migration has not been run yet). */
+function isMissingRelation(error: ErrLike, status?: number): boolean {
+  const code = error.code ?? '';
+  if (code === 'PGRST205' || code === '42P01') return true;
+  return status === 404 && /does not exist|schema cache|could not find the table/i.test(error.message ?? '');
+}
+
+/** Tables found missing on the server during the current sync cycle; their ops wait. */
+const unavailable = new Set<string>();
+
 function classify(error: ErrLike, status?: number): ErrorClass {
   const msg = `${error.name ?? ''} ${error.message ?? ''}`;
   const code = error.code ?? '';
+  if (isMissingRelation(error, status)) return 'missing';
   if (status === 401 || code === 'PGRST301' || code === 'PGRST303' || /jwt/i.test(msg)) return 'auth';
   if (/AuthRetryableFetchError/i.test(msg) || /failed to fetch|networkerror|network request failed|load failed|fetch/i.test(msg)) {
     return 'transient';
@@ -81,15 +92,19 @@ function thrownResult(e: unknown): Res {
 
 function runOp(op: OutboxOp): PromiseLike<Res> {
   const t = from(op.table);
+  const { keys, ignoreDuplicates } = tableConfig(op.table);
+  /** Narrows an update/delete to the one row: every key column must match. */
+  const target = (q: LooseQuery) => {
+    const parts = op.rowKey.split(':');
+    return keys.reduce((acc, k, i) => acc.eq(k, parts[i]), q);
+  };
   switch (op.kind) {
     case 'upsert':
-      return op.table === 'user_achievements'
-        ? t.upsert(op.row, { onConflict: 'user_id,achievement_id', ignoreDuplicates: true })
-        : t.upsert(op.row, { onConflict: 'id' });
+      return t.upsert(op.row, { onConflict: keys.join(','), ...(ignoreDuplicates ? { ignoreDuplicates: true } : {}) });
     case 'update':
-      return t.update(op.patch).eq('id', op.rowKey);
+      return target(t.update(op.patch));
     case 'delete':
-      return t.delete().eq('id', op.rowKey);
+      return target(t.delete());
     case 'updateWhere':
       return t.update(op.patch).match(op.match ?? {});
   }
@@ -97,11 +112,21 @@ function runOp(op: OutboxOp): PromiseLike<Res> {
 
 type PushResult = 'done' | 'retry';
 
-/** Pushes pending ops in order. Stops on a transient failure; permanent ones are parked as failed. */
+/** Pending ops that can be pushed now: those for tables known to be missing on the server wait. */
+const pushable = (db: PulseDB) =>
+  db.outbox
+    .where('status')
+    .equals('pending')
+    .filter((o) => !unavailable.has(o.table));
+
+/**
+ * Pushes pending ops in order. Stops on a transient failure; permanent ones are parked as failed.
+ * Ops for an optional table that is missing on the server stay pending and are skipped over.
+ */
 async function push(db: PulseDB): Promise<PushResult> {
   let refreshed = false;
   for (;;) {
-    const op = await db.outbox.where('status').equals('pending').first();
+    const op = await pushable(db).first();
     if (!op) return 'done';
     const seq = op.seq as number;
     inflightSeqs.add(seq);
@@ -125,6 +150,11 @@ async function push(db: PulseDB): Promise<PushResult> {
       if (error) return 'retry';
       continue;
     }
+    if (kind === 'missing' && tableConfig(op.table).optional) {
+      unavailable.add(op.table);
+      await db.outbox.update(seq, { attempts: op.attempts + 1 });
+      continue;
+    }
     if (kind === 'transient') {
       await db.outbox.update(seq, { attempts: op.attempts + 1 });
       return 'retry';
@@ -139,8 +169,8 @@ async function push(db: PulseDB): Promise<PushResult> {
 
 async function fetchAll(table: MirroredTable): Promise<Record<string, unknown>[]> {
   const rows: Record<string, unknown>[] = [];
-  // user_achievements has no id column.
-  const order = table === 'user_achievements' ? 'achievement_id' : 'id';
+  // Composite-key tables have no id column: order by the last key column (unique within one user's rows).
+  const order = tableConfig(table).keys.at(-1) as string;
   for (let offset = 0; ; offset += PAGE) {
     const res = await from(table)
       .select('*')
@@ -153,9 +183,6 @@ async function fetchAll(table: MirroredTable): Promise<Record<string, unknown>[]
   }
 }
 
-const keyOf = (table: MirroredTable, r: Record<string, unknown>) =>
-  table === 'user_achievements' ? `${r.user_id}:${r.achievement_id}` : String(r.id);
-
 async function pullTable(db: PulseDB, table: MirroredTable): Promise<void> {
   const server = (await fetchAll(table)).map((r) => normalizeRow(table, r));
   await db.transaction('rw', [db.table(table), db.outbox], async () => {
@@ -163,22 +190,29 @@ async function pullTable(db: PulseDB, table: MirroredTable): Promise<void> {
     const guarded = new Set((await db.outbox.where('table').equals(table).toArray()).map((o) => o.rowKey));
     const local = db.table(table);
     const keep = new Set<string>();
-    for (const r of server) keep.add(keyOf(table, r));
+    for (const r of server) keep.add(rowKeyOf(table, r));
     const stale: IndexableType[] = [];
     await local.each((r: Record<string, unknown>) => {
-      const k = keyOf(table, r);
-      if (!keep.has(k) && !guarded.has(k)) stale.push(table === 'user_achievements' ? [r.user_id as string, r.achievement_id as string] : (r.id as string));
+      const k = rowKeyOf(table, r);
+      if (!keep.has(k) && !guarded.has(k)) stale.push(dexieKeyOf(table, r));
     });
     await local.bulkDelete(stale);
-    await local.bulkPut(server.filter((r) => !guarded.has(keyOf(table, r))));
+    await local.bulkPut(server.filter((r) => !guarded.has(rowKeyOf(table, r))));
   });
 }
 
 async function pull(db: PulseDB): Promise<void> {
   for (const table of MIRRORED_TABLES) {
     // New local writes arrived mid-pull: push them first so they are not clobbered.
-    if ((await db.outbox.where('status').equals('pending').count()) > 0) return;
-    await pullTable(db, table);
+    if ((await pushable(db).count()) > 0) return;
+    try {
+      await pullTable(db, table);
+    } catch (e) {
+      // An optional table that is not on the server yet is skipped; anything else fails the pull.
+      const err = e as ErrLike & { status?: number };
+      if (!tableConfig(table).optional || !isMissingRelation(err, err.status)) throw e;
+      unavailable.add(table);
+    }
   }
   lastSyncedAt = new Date().toISOString();
   await db.meta.put({ key: 'lastPulledAt', value: lastSyncedAt });
@@ -188,10 +222,10 @@ async function pull(db: PulseDB): Promise<void> {
 async function cycle(): Promise<void> {
   if (!ctx) return;
   const { db } = ctx;
+  unavailable.clear();
   try {
     if ((await push(db)) === 'retry') return scheduleRetry();
-    const pending = await db.outbox.where('status').equals('pending').count();
-    if (pending === 0) await pull(db);
+    if ((await pushable(db).count()) === 0) await pull(db);
     backoff = 0;
   } catch (e) {
     // A failed pull is retried later; a local database error is not recoverable by retrying fast.

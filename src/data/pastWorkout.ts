@@ -1,11 +1,13 @@
 import { estimateKcal } from '../lib/activity';
 import { dateKey, fromDateKey, middayOf } from '../lib/dates';
 import type { ProfileRow, SetLogRow } from '../lib/database.types';
-import { storedLoad } from '../lib/load';
+import type { LoadChoice, StoredLoad } from '../lib/load';
 import { loadWorkouts, type WorkoutWithExercises } from './workouts';
 import { getDb } from '../offline/db';
 import { localWrite } from '../offline/outbox';
 import { newActivityRow, newPersonalRecordRow, newSessionRow, newSetLogRow } from '../offline/rows';
+import { newBests } from './bests';
+import { loadLoadPrefs } from './loadPrefs';
 import { byTimeDesc } from './sort';
 
 export interface PastWorkoutData {
@@ -15,11 +17,13 @@ export interface PastWorkoutData {
   units: ProfileRow['units'];
   /** Sets logged before the chosen day, newest first: the "last time" for prefills. */
   history: SetLogRow[];
+  /** The weight unit chosen for each exercise, by exercise id. */
+  prefs: Record<string, LoadChoice>;
 }
 
 export async function loadPastWorkout(userId: string, day: string): Promise<PastWorkoutData> {
   const db = getDb();
-  const [library, profile] = await Promise.all([loadWorkouts(), db.profiles.get(userId)]);
+  const [library, profile, prefs] = await Promise.all([loadWorkouts(), db.profiles.get(userId), loadLoadPrefs()]);
   if (!profile) throw new Error('Your profile is not available yet.');
   const ids = library.workouts.flatMap((w) => w.exercises.map((e) => e.id));
   const before = fromDateKey(day).getTime();
@@ -33,14 +37,15 @@ export async function loadPastWorkout(userId: string, day: string): Promise<Past
     planWorkoutIds: library.planWorkoutIds,
     units: profile.units,
     history,
+    prefs,
   };
 }
 
 export interface PastSet {
   exerciseId: string;
   setNumber: number;
-  /** kg, or stack level for machine exercises */
-  load: number;
+  /** What to store, from displayToStored: kg, or a stack level (PL) */
+  stored: StoredLoad;
   /** reps, or seconds for timed holds */
   reps: number;
 }
@@ -77,14 +82,12 @@ export async function savePastWorkout(input: {
   // Space the sets through the workout so their order reads back correctly.
   const spacing = (durationMin * 60_000) / Math.max(1, sets.length);
   const setRows = sets.map((s, i) => {
-    const stack = byId.get(s.exerciseId)?.load_unit === 'stack';
-    const load = Math.round(s.load * 100) / 100;
     return newSetLogRow({
       session_id: session.id,
       exercise_id: s.exerciseId,
       set_number: s.setNumber,
-      weight_kg: stack ? 0 : load,
-      stack_level: stack ? load : null,
+      weight_kg: s.stored.weight_kg,
+      stack_level: s.stored.stack_level,
       reps: s.reps,
       logged_at: new Date(started.getTime() + i * spacing).toISOString(),
     });
@@ -101,7 +104,7 @@ export async function savePastWorkout(input: {
   // One transaction: either everything is saved and queued, or nothing is.
   const db = getDb();
   await localWrite(db, ['workout_sessions', 'set_logs', 'activity_logs', 'personal_records'], async (w) => {
-    // Personal records: heavier than any set before that day.
+    // Personal records: heavier than any set before that day, per kind of set (PL or kg).
     const exerciseIds = [...new Set(sets.map((s) => s.exerciseId))];
     const prior = await db.set_logs
       .where('exercise_id')
@@ -116,13 +119,14 @@ export async function savePastWorkout(input: {
     for (const id of exerciseIds) {
       const ex = byId.get(id);
       if (!ex) continue;
-      const best = Math.max(...sets.filter((s) => s.exerciseId === id).map((s) => s.load));
-      const previous = prior.filter((p) => p.exercise_id === id).map((p) => storedLoad(p, ex));
-      const previousBest = previous.length ? Math.max(...previous) : 0;
-      if (previousBest > 0 && best > previousBest) {
+      const bests = newBests(
+        sets.filter((s) => s.exerciseId === id).map((s) => s.stored),
+        prior.filter((p) => p.exercise_id === id),
+      );
+      for (const b of bests) {
         await w.upsert(
           'personal_records',
-          newPersonalRecordRow({ user_id: userId, name: ex.name, value: best, unit: ex.load_unit, achieved_on: dateKey(started) }),
+          newPersonalRecordRow({ user_id: userId, name: ex.name, value: b.value, unit: b.unit, achieved_on: dateKey(started) }),
         );
       }
     }

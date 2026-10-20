@@ -16,6 +16,7 @@ const TABLE_NAMES: Record<SyncTable, string> = {
   plan_workouts: 'Plan workout',
   personal_records: 'Personal record',
   user_achievements: 'Achievement',
+  exercise_load_prefs: 'Weight unit',
   money_accounts: 'Money account',
   money_records: 'Money record',
 };

@@ -1,7 +1,8 @@
-import Dexie, { type Table } from 'dexie';
+import Dexie, { type IndexableType, type Table } from 'dexie';
 import type {
   AchievementRow,
   ActivityLogRow,
+  ExerciseLoadPrefRow,
   MoneyAccountRow,
   MoneyCategoryRow,
   MoneyRecordRow,
@@ -35,6 +36,7 @@ export class PulseDB extends Dexie {
   personal_records!: Table<PersonalRecordRow, string>;
   achievements!: Table<AchievementRow, string>;
   user_achievements!: Table<UserAchievementRow, [string, string]>;
+  exercise_load_prefs!: Table<ExerciseLoadPrefRow, [string, string]>;
   money_accounts!: Table<MoneyAccountRow, string>;
   money_categories!: Table<MoneyCategoryRow, string>;
   money_records!: Table<MoneyRecordRow, string>;
@@ -61,6 +63,7 @@ export class PulseDB extends Dexie {
       outbox: '++seq, table, rowKey, status',
       meta: 'key',
     });
+    this.version(2).stores({ exercise_load_prefs: '[user_id+exercise_id]' });
   }
 }
 
@@ -114,6 +117,7 @@ export const MIRRORED_TABLES = [
   'personal_records',
   'achievements',
   'user_achievements',
+  'exercise_load_prefs',
   'money_accounts',
   'money_categories',
   'money_records',
@@ -138,3 +142,37 @@ export function normalizeRow<T extends object>(table: MirroredTable, row: T): T 
   for (const c of cols) if (out[c] !== null && out[c] !== undefined) out[c] = Number(out[c]);
   return out as T;
 }
+
+/** How a table is keyed and synced, when that differs from a plain `id` primary key. */
+export interface TableConfig {
+  /** Primary key columns, in order. */
+  keys: readonly string[];
+  /** Push upserts with ignoreDuplicates (first write wins) instead of last write wins. */
+  ignoreDuplicates?: boolean;
+  /** The table may not exist on the server yet; sync skips it instead of failing. */
+  optional?: boolean;
+}
+
+const TABLE_CONFIG: Partial<Record<MirroredTable, TableConfig>> = {
+  user_achievements: { keys: ['user_id', 'achievement_id'], ignoreDuplicates: true },
+  exercise_load_prefs: { keys: ['user_id', 'exercise_id'], optional: true },
+};
+const PLAIN: TableConfig = { keys: ['id'] };
+
+export const tableConfig = (table: string): TableConfig => TABLE_CONFIG[table as MirroredTable] ?? PLAIN;
+export const isComposite = (table: string) => tableConfig(table).keys.length > 1;
+
+/** Key as text, joined with ":" for composite keys (ids are uuids, so never contain one). */
+export const rowKeyOf = (table: string, row: Record<string, unknown>): string =>
+  tableConfig(table)
+    .keys.map((k) => String(row[k]))
+    .join(':');
+
+/** Key in the form Dexie expects: the id, or the array of key columns. */
+export const dexieKeyOf = (table: string, row: Record<string, unknown>): IndexableType =>
+  isComposite(table) ? tableConfig(table).keys.map((k) => row[k] as string) : (row.id as string);
+
+/** A key given to the local writer: an id, or the key columns of a composite table. */
+export type RowKey = string | readonly string[];
+export const rowKeyText = (key: RowKey): string => (typeof key === 'string' ? key : key.join(':'));
+export const dexieKey = (key: RowKey): IndexableType => (typeof key === 'string' ? key : [...key]);

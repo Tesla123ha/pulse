@@ -11,6 +11,9 @@ interface Call {
   kind: 'select' | 'upsert' | 'update' | 'delete';
   arg?: unknown;
   eq?: unknown;
+  eqs?: Record<string, unknown>;
+  onConflict?: string;
+  ignoreDuplicates?: boolean;
   range?: [number, number];
 }
 
@@ -20,6 +23,8 @@ const fake = vi.hoisted(() => {
     calls: [] as Call[],
     server: {} as Record<string, Record<string, unknown>[]>,
     /** Returns a result to force for a write, or undefined for success. */
+    /** Tables that do not exist on the server: every request to them fails like PostgREST. */
+    missing: new Set<string>(),
     writeHook: undefined as undefined | ((c: Call) => Res | undefined | 'throw-network'),
   };
   const ok: Res = { data: null, error: null, status: 200 };
@@ -29,15 +34,24 @@ const fake = vi.hoisted(() => {
       select: () => q,
       order: () => q,
       range: (a: number, b: number) => ((call.range = [a, b]), q),
-      upsert: (row: unknown) => ((call.kind = 'upsert'), (call.arg = row), q),
+      upsert: (row: unknown, o?: { onConflict: string; ignoreDuplicates?: boolean }) => (
+        (call.kind = 'upsert'), (call.arg = row), (call.onConflict = o?.onConflict), (call.ignoreDuplicates = o?.ignoreDuplicates), q
+      ),
       update: (patch: unknown) => ((call.kind = 'update'), (call.arg = patch), q),
       delete: () => ((call.kind = 'delete'), q),
-      eq: (_c: string, v: unknown) => ((call.eq = v), q),
+      eq: (c: string, v: unknown) => ((call.eq = v), (call.eqs = { ...call.eqs, [c]: v }), q),
       match: (m: unknown) => ((call.eq = m), q),
       then(resolve: (r: Res) => unknown, reject: (e: unknown) => unknown) {
         return Promise.resolve()
           .then((): Res => {
             state.calls.push(call);
+            if (state.missing.has(table)) {
+              return {
+                data: null,
+                error: { code: 'PGRST205', message: `Could not find the table 'public.${table}' in the schema cache` },
+                status: 404,
+              };
+            }
             if (call.kind === 'select') {
               const rows = state.server[table] ?? [];
               const [a, b] = call.range ?? [0, rows.length];
@@ -48,12 +62,14 @@ const fake = vi.hoisted(() => {
             if (forced) return forced;
             const rows = (state.server[table] ??= []);
             if (call.kind === 'upsert') {
-              const row = call.arg as { id: string };
-              const i = rows.findIndex((r) => r.id === row.id);
+              const row = call.arg as Record<string, unknown>;
+              const cols = (call.onConflict ?? 'id').split(',');
+              const i = rows.findIndex((r) => cols.every((c) => r[c] === row[c]));
               if (i >= 0) rows[i] = row;
               else rows.push(row);
             } else if (call.kind === 'delete') {
-              state.server[table] = rows.filter((r) => r.id !== call.eq);
+              const eqs = call.eqs ?? {};
+              state.server[table] = rows.filter((r) => !Object.entries(eqs).every(([c, v]) => r[c] === v));
             }
             return ok;
           })
@@ -93,6 +109,7 @@ beforeEach(async () => {
   state.calls = [];
   state.server = {};
   state.writeHook = undefined;
+  state.missing = new Set();
   db = await openUserDb(U);
   stop = startSync(db, U);
   await syncNow(); // let the initial (empty) cycle finish
@@ -244,5 +261,80 @@ describe('local write coalescing', () => {
     expect(ops).toHaveLength(1);
     expect(ops[0].kind).toBe('update');
     expect(ops[0].patch).toEqual({ name: 'b', opening_balance_centavos: 9 });
+  });
+});
+
+describe('composite keys', () => {
+  const pref = (exercise_id: string, unit: string) => ({ user_id: U, exercise_id, unit, updated_at: 't' }) as never;
+
+  it('upserts on both key columns, last write wins', async () => {
+    await localWrite(db, ['exercise_load_prefs'], (w) => w.upsert('exercise_load_prefs', pref('e1', 'kg')));
+    await syncNow();
+    expect(writes()[0]).toMatchObject({ table: 'exercise_load_prefs', onConflict: 'user_id,exercise_id' });
+    expect(writes()[0].ignoreDuplicates).toBeUndefined();
+    await localWrite(db, ['exercise_load_prefs'], (w) => w.upsert('exercise_load_prefs', pref('e1', 'pl')));
+    await syncNow();
+    expect(state.server.exercise_load_prefs).toEqual([expect.objectContaining({ exercise_id: 'e1', unit: 'pl' })]);
+    expect(await db.exercise_load_prefs.count()).toBe(1);
+  });
+
+  it('keeps first-write-wins for achievements', async () => {
+    await localWrite(db, ['user_achievements'], (w) =>
+      w.upsert('user_achievements', { user_id: U, achievement_id: 'a1', earned_at: 't' }),
+    );
+    await syncNow();
+    expect(writes()[0]).toMatchObject({ onConflict: 'user_id,achievement_id', ignoreDuplicates: true });
+  });
+
+  it('filters update and delete on both columns', async () => {
+    state.server.exercise_load_prefs = [pref('e1', 'kg'), pref('e2', 'kg')] as never[];
+    await syncNow();
+    state.calls = [];
+    await localWrite(db, ['exercise_load_prefs'], async (w) => {
+      await w.update('exercise_load_prefs', [U, 'e1'], { unit: 'lb' });
+      await w.remove('exercise_load_prefs', [U, 'e2']);
+    });
+    expect((await db.exercise_load_prefs.toArray()).map((r) => [r.exercise_id, r.unit])).toEqual([['e1', 'lb']]);
+    await syncNow();
+    const [upd, del] = writes();
+    expect(upd).toMatchObject({ kind: 'update', eqs: { user_id: U, exercise_id: 'e1' } });
+    expect(del).toMatchObject({ kind: 'delete', eqs: { user_id: U, exercise_id: 'e2' } });
+    expect(state.server.exercise_load_prefs).toHaveLength(1);
+  });
+});
+
+describe('a table the server does not have yet', () => {
+  const pref = (exercise_id: string) => ({ user_id: U, exercise_id, unit: 'pl', updated_at: 't' }) as never;
+
+  it('is skipped by the pull while the others still sync', async () => {
+    state.missing.add('exercise_load_prefs');
+    state.server.money_accounts = [acct('x') as never];
+    await syncNow();
+    expect((await db.money_accounts.toArray()).map((r) => r.id)).toEqual(['x']);
+    expect(await db.meta.get('lastPulledAt')).toBeDefined();
+  });
+
+  it('keeps its ops pending while later ops of other tables still push', async () => {
+    state.missing.add('exercise_load_prefs');
+    await localWrite(db, ['exercise_load_prefs', 'money_accounts'], async (w) => {
+      await w.upsert('exercise_load_prefs', pref('e1'));
+      await w.upsert('exercise_load_prefs', pref('e2'));
+      await w.upsert('money_accounts', acct('a'));
+    });
+    await syncNow();
+    expect(state.server.money_accounts.map((r) => r.id)).toEqual(['a']);
+    const ops = await db.outbox.toArray();
+    expect(ops.map((o) => [o.table, o.status])).toEqual([
+      ['exercise_load_prefs', 'pending'],
+      ['exercise_load_prefs', 'pending'],
+    ]);
+    // Only the first op was tried; the table is skipped for the rest of the cycle.
+    expect(writes().filter((c) => c.table === 'exercise_load_prefs')).toHaveLength(1);
+
+    // The migration is run: the next sync pushes them.
+    state.missing.clear();
+    await syncNow();
+    expect(await db.outbox.count()).toBe(0);
+    expect(state.server.exercise_load_prefs).toHaveLength(2);
   });
 });

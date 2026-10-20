@@ -1,5 +1,6 @@
 import type {
   ActivityLogRow,
+  ExerciseLoadPrefRow,
   MoneyAccountRow,
   MoneyRecordRow,
   PersonalRecordRow,
@@ -9,7 +10,7 @@ import type {
   UserAchievementRow,
   WorkoutSessionRow,
 } from '../lib/database.types';
-import type { PulseDB } from './db';
+import { dexieKey, rowKeyOf as configRowKeyOf, rowKeyText, type PulseDB, type RowKey } from './db';
 import { newId } from './ids';
 import { requestSync } from './sync';
 
@@ -22,6 +23,7 @@ export type SyncTable =
   | 'plan_workouts'
   | 'personal_records'
   | 'user_achievements'
+  | 'exercise_load_prefs'
   | 'money_accounts'
   | 'money_records';
 
@@ -33,6 +35,7 @@ export interface SyncRows {
   plan_workouts: PlanWorkoutRow;
   personal_records: PersonalRecordRow;
   user_achievements: UserAchievementRow;
+  exercise_load_prefs: ExerciseLoadPrefRow;
   money_accounts: MoneyAccountRow;
   money_records: MoneyRecordRow;
 }
@@ -45,7 +48,7 @@ export interface OutboxOp {
   opId: string;
   table: SyncTable;
   kind: OutboxKind;
-  /** Primary key as text; `user_id:achievement_id` for user_achievements. */
+  /** Primary key as text; `user_id:achievement_id` and `user_id:exercise_id` for composite keys. */
   rowKey: string;
   row?: Record<string, unknown>;
   patch?: Record<string, unknown>;
@@ -61,18 +64,16 @@ export const inflightSeqs = new Set<number>();
 
 export const DATA_CHANGED = 'pulse:data-changed';
 
-export function rowKeyOf(table: SyncTable, row: Record<string, unknown>): string {
-  return table === 'user_achievements' ? `${row.user_id}:${row.achievement_id}` : String(row.id);
-}
+export const rowKeyOf = (table: SyncTable, row: Record<string, unknown>): string => configRowKeyOf(table, row);
 
 /** Local writes made inside one `localWrite` transaction. */
 export interface LocalWriter {
   /** Insert or replace a full row. */
   upsert<T extends SyncTable>(table: T, row: SyncRows[T]): Promise<void>;
-  /** Patch the row with this id. */
-  update<T extends SyncTable>(table: T, id: string, patch: Partial<SyncRows[T]>): Promise<void>;
-  /** Delete the row with this id. */
-  remove(table: SyncTable, id: string): Promise<void>;
+  /** Patch one row, by id, or by `[user_id, other_id]` for composite-key tables. */
+  update<T extends SyncTable>(table: T, key: RowKey, patch: Partial<SyncRows[T]>): Promise<void>;
+  /** Delete one row, by id, or by `[user_id, other_id]` for composite-key tables. */
+  remove(table: SyncTable, key: RowKey): Promise<void>;
   /** Patch every row whose columns equal `match`. */
   updateWhere<T extends SyncTable>(table: T, match: Partial<SyncRows[T]>, patch: Partial<SyncRows[T]>): Promise<void>;
 }
@@ -102,9 +103,10 @@ function makeWriter(db: PulseDB): LocalWriter {
       }
     },
 
-    async update(table, id, patch) {
+    async update(table, key, patch) {
+      const id = rowKeyText(key);
       const p = patch as Record<string, unknown>;
-      await db.table(table).update(id, p);
+      await db.table(table).update(dexieKey(key), p);
       const last = (await opsFor(table, id)).at(-1);
       if (last && (last.kind === 'upsert' || last.kind === 'update') && canCoalesce(last)) {
         const key = last.kind === 'upsert' ? 'row' : 'patch';
@@ -114,8 +116,9 @@ function makeWriter(db: PulseDB): LocalWriter {
       }
     },
 
-    async remove(table, id) {
-      await db.table(table).delete(id);
+    async remove(table, key) {
+      const id = rowKeyText(key);
+      await db.table(table).delete(dexieKey(key));
       const ops = await opsFor(table, id);
       if (ops.length > 0 && ops[0].kind === 'upsert' && ops.every(canCoalesce)) {
         // Created and deleted before ever reaching the server: nothing to push.
