@@ -13,9 +13,9 @@ import {
   swapWithNext,
   type SessionData,
 } from '../data/session';
+import { setLoadPref } from '../data/loadPrefs';
 import { errorMessage, useLoader } from '../data/useLoader';
 import { useNow } from '../data/useNow';
-import { displayToStored } from '../lib/load';
 import { buildModel, exerciseCaption } from '../lib/session';
 import type { WorkoutSessionRow } from '../lib/database.types';
 import SessionView, { SessionHeader } from './session/SessionView';
@@ -116,7 +116,7 @@ const Session: React.FC = () => {
               now={now}
               busy={busy}
               error={actionError}
-              onCompleteSet={(load, reps) =>
+              onCompleteSet={(stored, reps) =>
                 void run(async (d) => {
                   const m = buildModel(d.session, d.exercises, d.sets);
                   if (!m.current) return (x) => x;
@@ -124,12 +124,13 @@ const Session: React.FC = () => {
                     sessionId: d.session.id,
                     exerciseId: m.current.id,
                     setNumber: m.setsFor(m.current.id).length + 1,
-                    stored: displayToStored(load, m.current.load_unit === 'stack' ? 'pl' : 'kg'),
+                    stored,
                     reps,
                   });
                   return (x) => ({ ...x, sets: [...x.sets, row] });
                 })
               }
+              onChoice={(exerciseId, choice) => void setLoadPref(exerciseId, choice).catch(() => undefined)}
               onSwap={() =>
                 void run(async (d) => {
                   const m = buildModel(d.session, d.exercises, d.sets);

@@ -22,11 +22,10 @@ const KitSession: React.FC = () => {
             now={now}
             busy={false}
             error={null}
-            onCompleteSet={(load, reps) => {
+            onCompleteSet={(stored, reps) => {
               if (!model.current) return;
               const n = model.setsFor(model.current.id).length + 1;
               const id = model.current.id;
-              const stack = model.current.load_unit === 'stack';
               setData((d) => ({
                 ...d,
                 sets: [
@@ -36,8 +35,8 @@ const KitSession: React.FC = () => {
                     session_id: 's',
                     exercise_id: id,
                     set_number: n,
-                    weight_kg: stack ? 0 : load,
-                    stack_level: stack ? load : null,
+                    weight_kg: stored.weight_kg,
+                    stack_level: stored.stack_level,
                     reps,
                     logged_at: '',
                   },

@@ -156,3 +156,12 @@ ion-footer.session-footer::before {
   flex-direction: column;
   gap: var(--space-3);
 }
+
+/* KG | LB | PL per exercise (also used by Log workout) */
+.unit-toggle {
+  width: 100%;
+  max-width: 240px;
+}
+.session-active__unit {
+  margin-top: var(--space-3);
+}

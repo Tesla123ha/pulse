@@ -24,10 +24,17 @@ const ex = (
   start_load: null,
 });
 
+// A dumbbell lift set on plate levels, so the PL choice is visible in the kit.
+const onPl = (e: WorkoutExerciseRow): WorkoutExerciseRow => ({
+  ...e,
+  load_unit: 'stack',
+  start_load: 12,
+});
+
 const exercises = [
   ex(1, 'Dumbbell Bench Press', ['Chest', 'Triceps'], 4, 8, 10),
   ex(2, 'One-Arm Dumbbell Row', ['Back', 'Biceps'], 4, 10, 12),
-  ex(3, 'Incline Dumbbell Press', ['Chest', 'Shoulders'], 4, 10, 12),
+  onPl(ex(3, 'Incline Dumbbell Press', ['Chest', 'Shoulders'], 4, 10, 12)),
   ex(4, 'Lateral Raise', ['Shoulders'], 3, 15, 15),
   ex(5, 'Dumbbell Biceps Curl', ['Biceps'], 3, 10, 12),
   ex(6, 'Overhead Triceps Extension', ['Triceps'], 3, 10, 12),
@@ -42,6 +49,11 @@ const set = (session: string, exercise: string, n: number, kg: number, reps: num
   reps,
   stack_level: null,
   logged_at: '2026-10-01T00:00:00Z',
+});
+
+const plSet = (session: string, exercise: string, n: number, level: number, reps: number): SetLogRow => ({
+  ...set(session, exercise, n, 0, reps),
+  stack_level: level,
 });
 
 export function sessionFixture(): SessionData {
@@ -75,10 +87,11 @@ export function sessionFixture(): SessionData {
     sets: [
       ...[1, 2, 3, 4].map((n) => set('s', 'ex1', n, 25, 10)),
       ...[1, 2, 3, 4].map((n) => set('s', 'ex2', n, 22.5, 12)),
-      set('s', 'ex3', 1, 20, 12),
-      set('s', 'ex3', 2, 20, 12),
+      plSet('s', 'ex3', 1, 12, 12),
+      plSet('s', 'ex3', 2, 12, 12),
     ],
-    history: [set('old', 'ex3', 3, 22.5, 10)],
+    // Newest first: a PL set, then an older set in kg, so every unit has something to start from.
+    history: [plSet('old', 'ex3', 3, 12, 10), set('older', 'ex3', 3, 22.5, 10)],
     units: 'metric',
     prefs: {},
   };

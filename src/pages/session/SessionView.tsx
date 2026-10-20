@@ -1,22 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Icon, Stagger, StaggerItem, Stepper } from '../../components';
 import type { SessionData } from '../../data/session';
-import type { SetLogRow, Units, WorkoutExerciseRow } from '../../lib/database.types';
+import type { SetLogRow, WorkoutExerciseRow } from '../../lib/database.types';
 import { formatInt, plural } from '../../lib/format';
 import {
+  choiceStep,
+  choiceText,
+  displayToStored,
+  formatChoiceValue,
   formatEffort,
-  formatSet,
-  fromDisplayLoad,
-  loadStep,
-  loadUnitLabel,
-  storedLoad,
-  toDisplayLoad,
+  resolveChoice,
+  type LoadChoice,
+  type StoredLoad,
 } from '../../lib/load';
+import { formatSetEffort, seedLoad, switchedLoad, weightIrrelevant } from '../../lib/loadPrefill';
 import { buildModel, elapsedSeconds, formatClock, shortTarget, targetText } from '../../lib/session';
+import UnitToggle from './UnitToggle';
 
 export interface SessionActions {
-  /** `load` is stored units: kg, or stack level for machine exercises. */
-  onCompleteSet: (load: number, reps: number) => void;
+  /** `stored` is what to save: kg, or a stack level (PL). */
+  onCompleteSet: (stored: StoredLoad, reps: number) => void;
+  /** The person picked a weight unit for an exercise; remember it. */
+  onChoice?: (exerciseId: string, choice: LoadChoice) => void;
   onSwap: () => void;
   onSkip: () => void;
   onNote: () => void;
@@ -29,8 +34,6 @@ function lastTimeFor(history: SetLogRow[], exerciseId: string, setNumber: number
   const lastSession = mine[0].session_id;
   return mine.find((h) => h.session_id === lastSession && h.set_number === setNumber) ?? mine[0];
 }
-
-const roundTo = (v: number, step: number) => Math.round(v / step) * step;
 
 /** Progress across exercises: one segment each, filled by sets done. */
 const ExerciseProgress: React.FC<{ fractions: number[]; label: string }> = ({ fractions, label }) => (
@@ -51,7 +54,7 @@ export interface SessionViewProps extends SessionActions {
 }
 
 const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...actions }) => {
-  const { session, workout, exercises, sets, history, units } = data;
+  const { session, workout, exercises, sets, history, units, prefs } = data;
   const model = useMemo(() => buildModel(session, exercises, sets), [session, exercises, sets]);
   const current = model.current;
   const doneSets = current ? model.setsFor(current.id) : [];
@@ -59,18 +62,35 @@ const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...ac
   const paused = session.status === 'paused';
   const lastTime = current ? lastTimeFor(history, current.id, setNumber) : undefined;
 
-  // Stepper values (display units), reset when the active set changes.
+  // Unit chosen this visit, by exercise; otherwise the saved one, else what was last logged.
+  const [picked, setPicked] = useState<Record<string, LoadChoice>>({});
+  const mine = current ? history.filter((h) => h.exercise_id === current.id) : [];
+  const choice: LoadChoice = current
+    ? (picked[current.id] ?? resolveChoice(current, units, prefs[current.id], mine[0]))
+    : 'kg';
+  // Sets to start from, most preferred first: last time, then this session, then older.
+  const candidates = [...(lastTime ? [lastTime] : []), ...[...doneSets].reverse(), ...mine];
+  const noWeight = current ? weightIrrelevant(current, [...mine, ...doneSets]) : false;
+
+  // Stepper values (in the chosen unit), reset when the active set changes.
   const [weight, setWeight] = useState(0);
   const [reps, setReps] = useState(1);
   const activeKey = current ? `${current.id}:${setNumber}` : 'done';
   useEffect(() => {
     if (!current) return;
     const seed = lastTime ?? doneSets[doneSets.length - 1];
-    const stored = seed ? storedLoad(seed, current) : Number(current.start_load ?? 0);
-    setWeight(roundTo(toDisplayLoad(stored, current, units), loadStep(current, units) / 2));
+    setWeight(seedLoad(current, choice, candidates));
     setReps(seed ? seed.reps : current.target_type === 'max' ? 10 : current.rep_min);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey, units]);
+
+  const changeChoice = (next: LoadChoice) => {
+    if (!current || next === choice) return;
+    setWeight(switchedLoad(weight, choice, next, seedLoad(current, next, candidates)));
+    setPicked((p) => ({ ...p, [current.id]: next }));
+    actions.onChoice?.(current.id, next);
+  };
+  const storedNow = displayToStored(weight, choice);
 
   const fractions = model.order.map((ex) =>
     model.isSkipped(ex) && !model.isDone(ex) ? 0 : model.setsFor(ex.id).length / ex.target_sets,
@@ -104,14 +124,20 @@ const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...ac
             <Card level="raised" className="session-card">
               <div className="session-card__head">
                 <h2 className="t-title-md">{current.name}</h2>
-                <div className="t-cap">{[...current.muscles, targetText(current)].join(' · ')}</div>
+                <div className="t-cap">
+                  {[
+                    ...current.muscles,
+                    targetText(current),
+                    ...(!noWeight && weight > 0 ? [formatChoiceValue(weight, choice)] : []),
+                  ].join(' · ')}
+                </div>
               </div>
 
               {doneSets.map((s) => (
                 <div key={s.id} className="session-set">
                   <span className="t-secondary">Set {s.set_number}</span>
                   <span className="row" style={{ gap: 'var(--space-3)' }}>
-                    <span className="t-strong">{formatSet(s, current, units)}</span>
+                    <span className="t-strong">{formatSetEffort(s, current, choice, units)}</span>
                     <span className="session-set__check">
                       <Icon name="check" size={16} strokeWidth={3} label="Done" />
                     </span>
@@ -122,8 +148,10 @@ const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...ac
               <ActiveSet
                 exercise={current}
                 setNumber={setNumber}
-                lastTime={lastTime ? formatSet(lastTime, current, units) : null}
-                units={units}
+                lastTime={lastTime ? formatSetEffort(lastTime, current, choice, units) : null}
+                choice={choice}
+                showUnit={!noWeight}
+                onChoice={changeChoice}
                 weight={weight}
                 reps={reps}
                 onWeight={setWeight}
@@ -133,7 +161,15 @@ const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...ac
               {Array.from({ length: Math.max(0, current.target_sets - setNumber) }, (_, i) => (
                 <div key={i} className="session-set t-muted">
                   <span>Set {setNumber + i + 1}</span>
-                  <span>Target {formatEffort(fromDisplayLoad(weight, current, units), reps, current, units)}</span>
+                  <span>
+                    Target{' '}
+                    {formatEffort(
+                      choice === 'pl' ? Number(storedNow.stack_level) : storedNow.weight_kg,
+                      reps,
+                      current,
+                      choice,
+                    )}
+                  </span>
                 </div>
               ))}
             </Card>
@@ -145,7 +181,7 @@ const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...ac
               size="lg"
               block
               disabled={busy || paused}
-              onClick={() => actions.onCompleteSet(fromDisplayLoad(weight, current, units), reps)}
+              onClick={() => actions.onCompleteSet(storedNow, reps)}
             >
               <Icon name="check" />
               Complete set {setNumber}
@@ -216,25 +252,32 @@ const ActiveSet: React.FC<{
   exercise: WorkoutExerciseRow;
   setNumber: number;
   lastTime: string | null;
-  units: Units;
+  choice: LoadChoice;
+  showUnit: boolean;
+  onChoice: (c: LoadChoice) => void;
   weight: number;
   reps: number;
   onWeight: (v: number) => void;
   onReps: (v: number) => void;
-}> = ({ exercise, setNumber, lastTime, units, weight, reps, onWeight, onReps }) => (
+}> = ({ exercise, setNumber, lastTime, choice, showUnit, onChoice, weight, reps, onWeight, onReps }) => (
   <Card level="active" className="session-active">
     <div className="sec-head">
       <span className="session-active__label">Set {setNumber} · now</span>
       <span className="t-cap t-muted">{lastTime ? `Last time: ${lastTime}` : 'First time'}</span>
     </div>
+    {showUnit && (
+      <div className="session-active__unit">
+        <UnitToggle exercise={exercise.name} value={choice} onChange={onChoice} />
+      </div>
+    )}
     <div className="session-active__row">
       <span className="t-cap">
-        {exercise.load_unit === 'stack' ? 'Stack' : 'Weight'} ({loadUnitLabel(exercise, units)})
+        {choice === 'pl' ? 'Stack' : 'Weight'} ({choiceText(choice)})
       </span>
       <Stepper
-        name={exercise.load_unit === 'stack' ? 'stack level' : 'weight'}
+        name={choice === 'pl' ? 'stack level' : 'weight'}
         value={weight}
-        step={loadStep(exercise, units)}
+        step={choiceStep(choice)}
         min={0}
         max={1000}
         onChange={onWeight}
