@@ -579,13 +579,23 @@ ion-tab-bar.pl-nav {
     font: var(--type-body-strong);
     letter-spacing: 0;
   }
+  /* No padding on the native button so the pill can fill the whole item; the item carries the padding */
   ion-tab-bar.pl-nav ion-tab-button::part(native) {
     flex-direction: row;
     justify-content: flex-start;
-    padding: 0 var(--space-4);
+    padding: 0;
   }
-  ion-tab-bar.pl-nav ion-tab-button.tab-selected {
+  ion-tab-bar.pl-nav .pl-nav__pill {
+    display: block;
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-md);
     background: var(--surface-overlay);
+  }
+  ion-tab-bar.pl-nav .pl-nav__item {
+    position: relative;
+    z-index: 1;
+    padding: 0 var(--space-4);
   }
   ion-tab-bar.pl-nav .pl-nav__item {
     flex-direction: row;
@@ -635,10 +645,14 @@ ion-tab-bar.pl-nav ion-tab-button.ion-focused {
   margin-left: -12px;
   border-radius: 0 0 3px 3px;
   background: var(--accent);
-  visibility: hidden;
 }
-ion-tab-button.tab-selected .pl-nav__marker {
-  visibility: visible;
+/* Only the desktop sidebar shows the pill behind the current item */
+.pl-nav__pill {
+  display: none;
+}
+/* Label and icon colour ease between muted and current */
+ion-tab-bar.pl-nav ion-tab-button {
+  transition: color var(--motion-press);
 }
 
 /* ---------- Toggle (IonToggle) ---------- */

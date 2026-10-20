@@ -17,5 +17,5 @@ export { default as ChartBars } from './ChartBars';
 export { NAV_TABS, renderBottomNav } from './BottomNav';
 export { default as Toggle } from './Toggle';
 export { default as Sheet } from './Sheet';
-export { MotionProvider, ScrimFade, SheetRise, Stagger, StaggerItem } from './Motion';
+export { MotionProvider, Reveal, ScrimFade, SheetRise, Stagger, StaggerItem } from './Motion';
 export { default as NumberField } from './NumberField';

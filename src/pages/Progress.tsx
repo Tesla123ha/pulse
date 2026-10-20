@@ -1,7 +1,7 @@
 import { IonContent, IonPage, IonRefresher, IonRefresherContent, useIonRouter } from '@ionic/react';
 import { useCallback, useState } from 'react';
 import { useUserId } from '../auth/AuthProvider';
-import { Button, Card } from '../components';
+import { Button, Card, Reveal } from '../components';
 import { deleteActivity, loadProgress, type ProgressActivity } from '../data/progress';
 import { useLoader } from '../data/useLoader';
 import type { Range } from '../lib/progress';
@@ -30,7 +30,9 @@ const Progress: React.FC = () => {
           <IonRefresherContent />
         </IonRefresher>
         <div className="screen screen--wide">
-          <h1 className="t-title-lg">Progress</h1>
+          <Reveal>
+            <h1 className="t-title-lg">Progress</h1>
+          </Reveal>
           {!data && loading && (
             <p className="t-cap" role="status">
               Loading progress
@@ -46,7 +48,14 @@ const Progress: React.FC = () => {
             </Card>
           )}
           {data && (
-            <ProgressView data={data} range={range} onRange={setRange} now={new Date()} onDelete={setDeleting} onLog={setLogDay} />
+            <ProgressView
+              data={data}
+              range={range}
+              onRange={setRange}
+              now={new Date()}
+              onDelete={setDeleting}
+              onLog={setLogDay}
+            />
           )}
         </div>
         <LogDaySheet

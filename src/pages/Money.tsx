@@ -1,7 +1,7 @@
 import { IonContent, IonPage, IonRefresher, IonRefresherContent } from '@ionic/react';
 import { useState } from 'react';
 import { useUserId } from '../auth/AuthProvider';
-import { Button, Card } from '../components';
+import { Button, Card, Reveal } from '../components';
 import { deleteAccount, deleteRecord, loadMoney, saveAccount, saveRecord, type MoneyAccount } from '../data/money';
 import { useLoader } from '../data/useLoader';
 import type { MoneyRecordRow } from '../lib/database.types';
@@ -25,10 +25,10 @@ const Money: React.FC = () => {
           <IonRefresherContent />
         </IonRefresher>
         <div className="screen screen--wide">
-          <div>
+          <Reveal>
             <p className="t-cap">{MONTH.format(new Date())}</p>
             <h1 className="t-title-lg">Money</h1>
-          </div>
+          </Reveal>
           {!data && loading && (
             <p className="t-cap" role="status">
               Loading money

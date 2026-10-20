@@ -1,12 +1,22 @@
-import { LazyMotion, MotionConfig, domAnimation, m, type HTMLMotionProps, type Variants } from 'motion/react';
-import type { ReactNode } from 'react';
+import { useIonViewWillEnter } from '@ionic/react';
+import {
+  LazyMotion,
+  MotionConfig,
+  domMax,
+  m,
+  useAnimationControls,
+  type HTMLMotionProps,
+  type Variants,
+} from 'motion/react';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 /**
- * One provider for the app. LazyMotion keeps the bundle small (only `m` components, no full `motion`),
- * and reducedMotion="user" drops movement and scaling for people who ask for less motion.
+ * One provider for the app. LazyMotion keeps the bundle smaller (only `m` components, no full `motion`;
+ * domMax adds layout animations for the sliding nav highlight), and reducedMotion="user" drops
+ * movement and scaling for people who ask for less motion.
  */
 export const MotionProvider: React.FC<{ children: ReactNode }> = ({ children }) => (
-  <LazyMotion features={domAnimation} strict>
+  <LazyMotion features={domMax} strict>
     <MotionConfig reducedMotion="user">{children}</MotionConfig>
   </LazyMotion>
 );
@@ -22,12 +32,47 @@ const item: Variants = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', visualDuration: 0.4, bounce: 0 } },
 };
 
-/** Plays its StaggerItem descendants in sequence once, when first shown. */
-export const Stagger: React.FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
-  <m.div className={className} variants={group} initial="hidden" animate="show">
-    {children}
-  </m.div>
-);
+/**
+ * Plays the entrance when first shown and again each time the person returns to the page.
+ * Ionic keeps visited pages mounted, so mounting alone would only animate the first visit.
+ */
+function useReplayControls() {
+  const controls = useAnimationControls();
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    void controls.start('show');
+    return () => {
+      mounted.current = false;
+    };
+  }, [controls]);
+  useIonViewWillEnter(() => {
+    if (!mounted.current) return;
+    controls.set('hidden');
+    void controls.start('show');
+  });
+  return controls;
+}
+
+/** Plays its StaggerItem descendants in sequence on first show and on every return to the page. */
+export const Stagger: React.FC<{ children: ReactNode; className?: string }> = ({ children, className }) => {
+  const controls = useReplayControls();
+  return (
+    <m.div className={className} variants={group} initial="hidden" animate={controls}>
+      {children}
+    </m.div>
+  );
+};
+
+/** One standalone block (a page title) that fades and slides up on first show and every return. */
+export const Reveal: React.FC<{ children: ReactNode; className?: string }> = ({ children, className }) => {
+  const controls = useReplayControls();
+  return (
+    <m.div className={className} variants={item} initial="hidden" animate={controls}>
+      {children}
+    </m.div>
+  );
+};
 
 /** One block that fades and slides up as part of a Stagger. Add no styling of its own. */
 export const StaggerItem: React.FC<{ children: ReactNode }> = ({ children }) => (

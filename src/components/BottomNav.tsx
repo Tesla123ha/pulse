@@ -1,4 +1,5 @@
 import { IonLabel, IonTabBar, IonTabButton } from '@ionic/react';
+import { m } from 'motion/react';
 import Icon, { type IconName } from './Icon';
 
 export interface NavTab {
@@ -7,6 +8,9 @@ export interface NavTab {
   label: string;
   icon: IconName;
 }
+
+// One shared highlight slides from the old tab to the new one (layoutId). Reduced motion: it jumps.
+const SLIDE = { type: 'spring', stiffness: 520, damping: 40 } as const;
 
 export const NAV_TABS: NavTab[] = [
   { tab: 'home', href: '/home', label: 'Home', icon: 'home' },
@@ -27,7 +31,12 @@ export function renderBottomNav(currentPath: string) {
         const current = currentPath.startsWith(t.href);
         return (
           <IonTabButton key={t.tab} tab={t.tab} href={t.href} aria-current={current ? 'page' : undefined}>
-            <span className="pl-nav__marker" aria-hidden="true" />
+            {current && (
+              <>
+                <m.span layoutId="nav-pill" className="pl-nav__pill" aria-hidden="true" transition={SLIDE} />
+                <m.span layoutId="nav-marker" className="pl-nav__marker" aria-hidden="true" transition={SLIDE} />
+              </>
+            )}
             <span className="pl-nav__item">
               <Icon name={t.icon} />
               <IonLabel>{t.label}</IonLabel>

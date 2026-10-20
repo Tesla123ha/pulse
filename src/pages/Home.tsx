@@ -1,6 +1,6 @@
 import { IonContent, IonPage, IonRefresher, IonRefresherContent } from '@ionic/react';
 import { useCallback, useState } from 'react';
-import { Button, Card } from '../components';
+import { Button, Card, Reveal } from '../components';
 import { useUserId } from '../auth/AuthProvider';
 import { loadHome, logActivity } from '../data/home';
 import { useLoader } from '../data/useLoader';
@@ -22,7 +22,9 @@ const Home: React.FC = () => {
           <IonRefresherContent />
         </IonRefresher>
         <div className="screen screen--wide">
-          <HomeHeader today={new Date()} />
+          <Reveal>
+            <HomeHeader today={new Date()} />
+          </Reveal>
 
           {!data && !error && (
             <p className="t-cap" role="status">

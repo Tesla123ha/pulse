@@ -1,7 +1,7 @@
 import { IonContent, IonPage, IonRefresher, IonRefresherContent } from '@ionic/react';
 import { useCallback, useState } from 'react';
 import { useUserId } from '../auth/AuthProvider';
-import { Button, Card } from '../components';
+import { Button, Card, Reveal } from '../components';
 import { loadWorkouts, type WorkoutWithExercises } from '../data/workouts';
 import { must, useLoader } from '../data/useLoader';
 import { supabase } from '../lib/supabase';
@@ -32,7 +32,9 @@ const Workouts: React.FC = () => {
           <IonRefresherContent />
         </IonRefresher>
         <div className="screen screen--wide">
-          <h1 className="t-title-lg">Workouts</h1>
+          <Reveal>
+            <h1 className="t-title-lg">Workouts</h1>
+          </Reveal>
 
           {!data && loading && (
             <p className="t-cap" role="status">
@@ -61,9 +63,7 @@ const Workouts: React.FC = () => {
             />
           )}
         </div>
-        {data && (
-          <WorkoutSheet workout={selected} data={data} units={data.units} onDismiss={() => setSelected(null)} />
-        )}
+        {data && <WorkoutSheet workout={selected} data={data} units={data.units} onDismiss={() => setSelected(null)} />}
       </IonContent>
     </IonPage>
   );
