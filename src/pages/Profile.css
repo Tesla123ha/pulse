@@ -1,0 +1,131 @@
+.screen.profile {
+  gap: var(--space-6);
+}
+.profile-head {
+  gap: var(--space-4);
+}
+.profile-avatar {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  border: 2px solid var(--border-strong);
+}
+.profile-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Rows inside flush cards */
+.prow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 56px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text);
+  font: var(--type-body);
+  text-align: left;
+  cursor: pointer;
+}
+.prow:last-child {
+  border-bottom: 0;
+}
+.prow:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.prow--static {
+  cursor: default;
+}
+.prow--static ion-toggle {
+  width: 100%;
+  font: var(--type-body);
+}
+.pval {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text);
+  font-weight: 600;
+  text-align: right;
+}
+.pval .pl-ico {
+  color: var(--text-muted);
+}
+.pval--quiet {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Achievements */
+.badges {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.badge {
+  height: 120px;
+  padding: var(--space-3) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  text-align: center;
+  border-radius: var(--radius-md);
+}
+.badge--earned {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+}
+.badge--locked {
+  gap: var(--space-1);
+  border: 2px dashed var(--border-strong);
+}
+.badge__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+.badge--earned .badge__icon {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.badge--locked .badge__icon {
+  background: var(--surface-overlay);
+  color: var(--text-secondary);
+}
+.badge__name {
+  font: 600 13px/18px var(--font-sans);
+}
+.badge--locked .badge__name {
+  color: var(--text-secondary);
+}
+.badge__state {
+  font: 500 12px/16px var(--font-sans);
+  color: var(--text-muted);
+}
+
+.profile-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.profile-version {
+  text-align: center;
+}
