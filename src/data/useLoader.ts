@@ -20,9 +20,12 @@ export function useLoader<T>(load: () => Promise<T>): Loaded<T> {
   const [loading, setLoading] = useState(true);
   const loadRef = useRef(load);
   loadRef.current = load;
-  const mounted = useRef(false);
+  // Refs, not state: Ionic keeps the first view-enter callback, so it must not read stale state.
+  const loadingRef = useRef(false);
+  const enteredOnce = useRef(false);
 
   const reload = useCallback(async () => {
+    loadingRef.current = true;
     setLoading(true);
     try {
       setData(await loadRef.current());
@@ -30,18 +33,22 @@ export function useLoader<T>(load: () => Promise<T>): Loaded<T> {
     } catch (e) {
       setError(errorMessage(e));
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    mounted.current = true;
     void reload();
   }, [reload]);
 
   useIonViewWillEnter(() => {
-    // The first enter is covered by the mount effect.
-    if (mounted.current && !loading) void reload();
+    // The first enter is covered by the mount effect; later enters refresh.
+    if (!enteredOnce.current) {
+      enteredOnce.current = true;
+      return;
+    }
+    if (!loadingRef.current) void reload();
   });
 
   const patch = useCallback((update: (prev: T) => T) => setData((prev) => (prev === null ? prev : update(prev))), []);
