@@ -209,3 +209,126 @@ export function activityTitle(a: Pick<ActivityLogRow, 'type'> & { workoutName?: 
   const noun = activityMeta(a.type).noun;
   return a.workoutName ?? noun.charAt(0).toUpperCase() + noun.slice(1);
 }
+
+// ---- Month heatmap ----
+
+export type HeatLevel = 0 | 1 | 2 | 3;
+
+/** 0 none; 1 under half the daily goal; 2 at least half; 3 goal met. */
+export function heatLevel(min: number, goalMin: number): HeatLevel {
+  if (!(min > 0)) return 0;
+  if (!(goalMin > 0)) return 1;
+  if (min >= goalMin) return 3;
+  return min >= goalMin / 2 ? 2 : 1;
+}
+
+export interface HeatCell {
+  key: string;
+  date: Date;
+  minutes: number;
+  count: number;
+  level: HeatLevel;
+  /** True when the day met a real goal (false when there is no goal to meet). */
+  goalMet: boolean;
+  future: boolean;
+}
+
+export interface MonthHeatmap {
+  /** Leading blanks (null) so day 1 lands on its weekday, Sunday first. */
+  cells: (HeatCell | null)[];
+  totalMin: number;
+  activeDays: number;
+}
+
+/**
+ * One cell per day of `month` (any date in it). With no daily goal, levels fall back to
+ * the month's busiest day: under half of it is 1, up to three quarters is 2, above is 3.
+ */
+export function monthHeatmap(
+  activity: Pick<ActivityLogRow, 'logged_at' | 'duration_min'>[],
+  month: Date,
+  today: Date,
+  goalMin: number,
+): MonthHeatmap {
+  const year = month.getFullYear();
+  const mon = month.getMonth();
+  const first = new Date(year, mon, 1);
+  const daysInMonth = new Date(year, mon + 1, 0).getDate();
+  const byDay = new Map<string, { minutes: number; count: number }>();
+  for (const a of activity) {
+    const d = new Date(a.logged_at);
+    if (d.getFullYear() !== year || d.getMonth() !== mon) continue;
+    const k = dateKey(d);
+    const cur = byDay.get(k) ?? { minutes: 0, count: 0 };
+    byDay.set(k, { minutes: cur.minutes + a.duration_min, count: cur.count + 1 });
+  }
+  const max = Math.max(0, ...[...byDay.values()].map((v) => v.minutes));
+  const effectiveGoal = goalMin > 0 ? goalMin : max * 0.75;
+  const todayStart = startOfDay(today);
+  let totalMin = 0;
+  let activeDays = 0;
+  const days: HeatCell[] = Array.from({ length: daysInMonth }, (_, i) => {
+    const date = new Date(year, mon, i + 1);
+    const key = dateKey(date);
+    const v = byDay.get(key) ?? { minutes: 0, count: 0 };
+    totalMin += v.minutes;
+    if (v.count > 0) activeDays += 1;
+    const level = goalMin > 0 ? heatLevel(v.minutes, goalMin) : heatLevel(v.minutes, effectiveGoal);
+    return {
+      key,
+      date,
+      minutes: v.minutes,
+      count: v.count,
+      level,
+      goalMet: goalMin > 0 && level === 3,
+      future: date.getTime() > todayStart.getTime(),
+    };
+  });
+  return { cells: [...Array.from({ length: first.getDay() }, () => null), ...days], totalMin, activeDays };
+}
+
+const LONG_DAY = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric' });
+
+/** "October 14, 45 min, 2 activities, goal met" / "October 14, no activity" */
+export function heatLabel(cell: HeatCell): string {
+  const day = LONG_DAY.format(cell.date);
+  if (cell.count === 0) return `${day}, no activity`;
+  const parts = [day, `${formatInt(cell.minutes)} min`, `${cell.count} ${cell.count === 1 ? 'activity' : 'activities'}`];
+  if (cell.goalMet) parts.push('goal met');
+  return parts.join(', ');
+}
+
+/** Month as a period: [start, end) and the caption word ("in October", "in October 2025"). */
+export function monthPeriod(month: Date, now: Date) {
+  const start = new Date(month.getFullYear(), month.getMonth(), 1);
+  const end = new Date(month.getFullYear(), month.getMonth() + 1, 1);
+  const name = MONTH_LONG.format(start);
+  return { start, end, name, caption: `in ${month.getFullYear() === now.getFullYear() ? name : `${name} ${start.getFullYear()}`}` };
+}
+
+/**
+ * Change against the previous month: month to date versus the same number of days of the
+ * previous month when viewing the current month, whole months otherwise.
+ */
+export function monthDelta(
+  activity: Pick<ActivityLogRow, 'logged_at' | 'duration_min'>[],
+  month: Date,
+  now: Date,
+): { text: string; up: boolean } | null {
+  const { start, end } = monthPeriod(month, now);
+  const prevStart = new Date(start.getFullYear(), start.getMonth() - 1, 1);
+  const isCurrent = start.getFullYear() === now.getFullYear() && start.getMonth() === now.getMonth();
+  let curEnd = end;
+  let prevEnd = start;
+  if (isCurrent) {
+    const days = startOfDay(now).getDate();
+    curEnd = new Date(start.getFullYear(), start.getMonth(), days + 1);
+    const prevLength = new Date(prevStart.getFullYear(), prevStart.getMonth() + 1, 0).getDate();
+    prevEnd = new Date(prevStart.getFullYear(), prevStart.getMonth(), Math.min(days, prevLength) + 1);
+  }
+  const sum = (s: Date, e: Date) => between(activity as Act[], s, e).reduce((t, a) => t + a.duration_min, 0);
+  const prevMin = sum(prevStart, prevEnd);
+  if (prevMin <= 0) return null;
+  const pct = Math.round(((sum(start, curEnd) - prevMin) / prevMin) * 100);
+  return { text: `${pct >= 0 ? '+' : '−'}${Math.abs(pct)}% vs ${MONTH_LONG.format(prevStart)}`, up: pct >= 0 };
+}
