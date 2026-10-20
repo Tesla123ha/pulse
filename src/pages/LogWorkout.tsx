@@ -186,7 +186,7 @@ const LogWorkout: React.FC = () => {
   return (
     <IonPage>
       <IonContent>
-        <div className="screen">
+        <div className="screen screen--mid">
           <div className="session-hdr">
             <Button iconOnly aria-label="Back to Progress" onClick={back}>
               <Icon name="chevronLeft" />

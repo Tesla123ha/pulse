@@ -58,7 +58,7 @@ const KitProfile: React.FC = () => {
   return (
     <IonPage>
       <IonContent>
-        <div className="screen profile">
+        <div className="screen screen--wide profile">
           <ProfileView
             data={data}
             version="0.0.1"

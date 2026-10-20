@@ -32,74 +32,78 @@ const HomeView: React.FC<{ data: HomeData; onLog: (a: ActivityMeta) => void }> =
 
   return (
     <>
-      <section className="section" aria-labelledby="week-title">
-        <div className="sec-head">
-          <h2 id="week-title" className="t-title-sm">
-            This week
-          </h2>
-          <span className="t-cap">{weekCaption}</span>
-        </div>
-        <WeekStrip days={data.week} />
-      </section>
+      <div className="split">
+        <div className="split__col">
+          <section className="section" aria-labelledby="week-title">
+            <div className="sec-head">
+              <h2 id="week-title" className="t-title-sm">
+                This week
+              </h2>
+              <span className="t-cap">{weekCaption}</span>
+            </div>
+            <WeekStrip days={data.week} />
+          </section>
 
-      <Card className="home-ring">
-        <ProgressRing
-          value={moveFraction}
-          label={`${Math.round(Math.min(1, moveFraction) * 100)} percent of daily move goal`}
-        />
-        <div className="grow">
-          <div className="t-cap">Burned today</div>
-          <div className="home-ring__value">
-            <span className="t-num">{formatInt(data.burnedKcal)}</span>
-            <span className="t-cap">/ {formatInt(profile.move_goal_kcal)} kcal</span>
-          </div>
-          <div className="t-cap" style={{ marginTop: 'var(--space-2)' }}>
-            {formatInt(data.activeMin)} min active
-          </div>
+          <Card className="home-ring">
+            <ProgressRing
+              value={moveFraction}
+              label={`${Math.round(Math.min(1, moveFraction) * 100)} percent of daily move goal`}
+            />
+            <div className="grow">
+              <div className="t-cap">Burned today</div>
+              <div className="home-ring__value">
+                <span className="t-num">{formatInt(data.burnedKcal)}</span>
+                <span className="t-cap">/ {formatInt(profile.move_goal_kcal)} kcal</span>
+              </div>
+              <div className="t-cap" style={{ marginTop: 'var(--space-2)' }}>
+                {formatInt(data.activeMin)} min active
+              </div>
+            </div>
+          </Card>
         </div>
-      </Card>
-
-      {workout && (
-        <Card level="raised" hero xl className="home-workout">
-          <div className="t-cap">{workout.openSessionId ? 'Workout in progress' : "Today's workout"}</div>
-          <h2 className="t-title-md">{workout.name}</h2>
-          <div className="t-cap">
-            {formatInt(workout.durationMin)} min · {plural(workout.exerciseCount, 'exercise')} · {workout.level}
-          </div>
-          <Button variant="primary" size="lg" block routerLink={sessionLink}>
-            {workout.openSessionId ? 'Resume workout' : 'Start workout'}
-            <Icon name="arrowRight" />
-          </Button>
-        </Card>
-      )}
-
-      <section className="section" aria-labelledby="quicklog-head">
-        <div className="sec-head">
-          <h2 id="quicklog-head" className="t-title-sm">
-            Quick log
-          </h2>
-          <span className="t-cap">Last entry shown</span>
-        </div>
-        <div className="quicklog">
-          {QUICK_LOG.map((a) => {
-            const last = lastEntryText(a, data.lastByType[a.type], units);
-            return (
-              <Button
-                key={a.type}
-                variant="ghost"
-                className="quicklog__tile"
-                aria-label={`Log ${a.noun}, last entry ${last}`}
-                onClick={() => onLog(a)}
-              >
-                <Icon name={a.icon} />
-                <span className="quicklog__name">{a.label}</span>
-                <span className="quicklog__last">{last}</span>
+        <div className="split__col">
+          {workout && (
+            <Card level="raised" hero xl className="home-workout">
+              <div className="t-cap">{workout.openSessionId ? 'Workout in progress' : "Today's workout"}</div>
+              <h2 className="t-title-md">{workout.name}</h2>
+              <div className="t-cap">
+                {formatInt(workout.durationMin)} min · {plural(workout.exerciseCount, 'exercise')} · {workout.level}
+              </div>
+              <Button variant="primary" size="lg" block routerLink={sessionLink}>
+                {workout.openSessionId ? 'Resume workout' : 'Start workout'}
+                <Icon name="arrowRight" />
               </Button>
-            );
-          })}
-        </div>
-      </section>
+            </Card>
+          )}
 
+          <section className="section" aria-labelledby="quicklog-head">
+            <div className="sec-head">
+              <h2 id="quicklog-head" className="t-title-sm">
+                Quick log
+              </h2>
+              <span className="t-cap">Last entry shown</span>
+            </div>
+            <div className="quicklog">
+              {QUICK_LOG.map((a) => {
+                const last = lastEntryText(a, data.lastByType[a.type], units);
+                return (
+                  <Button
+                    key={a.type}
+                    variant="ghost"
+                    className="quicklog__tile"
+                    aria-label={`Log ${a.noun}, last entry ${last}`}
+                    onClick={() => onLog(a)}
+                  >
+                    <Icon name={a.icon} />
+                    <span className="quicklog__name">{a.label}</span>
+                    <span className="quicklog__last">{last}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      </div>
     </>
   );
 };

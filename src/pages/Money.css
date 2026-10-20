@@ -87,3 +87,8 @@ ion-button.pl-btn.money-link {
   outline: none;
   box-shadow: var(--focus-ring);
 }
+
+.money-empty {
+  max-width: 560px;
+  margin-inline: auto;
+}

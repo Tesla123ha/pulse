@@ -21,7 +21,7 @@ const Home: React.FC = () => {
         <IonRefresher slot="fixed" onIonRefresh={(e) => void reload().finally(() => e.detail.complete())}>
           <IonRefresherContent />
         </IonRefresher>
-        <div className="screen">
+        <div className="screen screen--wide">
           <HomeHeader today={new Date()} />
 
           {!data && !error && (

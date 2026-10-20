@@ -86,7 +86,7 @@ const KitWorkouts: React.FC = () => {
   return (
     <IonPage>
       <IonContent>
-        <div className="screen">
+        <div className="screen screen--wide">
           <h1 className="t-title-lg">Workouts</h1>
           <WorkoutsView
             data={data}

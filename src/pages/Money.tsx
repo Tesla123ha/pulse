@@ -24,7 +24,7 @@ const Money: React.FC = () => {
         <IonRefresher slot="fixed" onIonRefresh={(e) => void reload().finally(() => e.detail.complete())}>
           <IonRefresherContent />
         </IonRefresher>
-        <div className="screen">
+        <div className="screen screen--wide">
           <div>
             <p className="t-cap">{MONTH.format(new Date())}</p>
             <h1 className="t-title-lg">Money</h1>

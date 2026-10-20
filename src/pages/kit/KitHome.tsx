@@ -72,7 +72,7 @@ const KitHome: React.FC = () => {
   return (
     <IonPage>
       <IonContent>
-        <div className="screen">
+        <div className="screen screen--wide">
           <HomeHeader today={new Date(2026, 9, 13)} />
           <HomeView data={data} onLog={setLogging} />
         </div>

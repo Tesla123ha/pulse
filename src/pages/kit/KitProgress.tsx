@@ -71,7 +71,7 @@ const KitProgress: React.FC = () => {
   return (
     <IonPage>
       <IonContent>
-        <div className="screen">
+        <div className="screen screen--wide">
           <h1 className="t-title-lg">Progress</h1>
           <ProgressView data={kit} range={range} onRange={setRange} now={now} onDelete={setDeleting} onLog={() => undefined} />
         </div>

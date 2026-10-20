@@ -31,7 +31,7 @@ const Workouts: React.FC = () => {
         <IonRefresher slot="fixed" onIonRefresh={(e) => void reload().finally(() => e.detail.complete())}>
           <IonRefresherContent />
         </IonRefresher>
-        <div className="screen">
+        <div className="screen screen--wide">
           <h1 className="t-title-lg">Workouts</h1>
 
           {!data && loading && (

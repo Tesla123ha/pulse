@@ -45,7 +45,7 @@ const Profile: React.FC = () => {
         <IonRefresher slot="fixed" onIonRefresh={(e) => void reload().finally(() => e.detail.complete())}>
           <IonRefresherContent />
         </IonRefresher>
-        <div className="screen profile">
+        <div className="screen screen--wide profile">
           {!data && loading && (
             <p className="t-cap" role="status">
               Loading profile

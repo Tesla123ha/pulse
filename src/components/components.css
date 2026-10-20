@@ -526,15 +526,82 @@ ion-tab-bar.pl-nav {
   margin-inline: auto;
   box-sizing: border-box;
 }
-@media (min-width: 481px) {
+@media (min-width: 481px) and (max-width: 899px) {
   ion-tab-bar.pl-nav {
     border-inline: 1px solid var(--border-subtle);
+    /* content-box (forced by Ionic): leave room for the two borders so the bar matches the column */
+    max-width: 478px;
   }
 }
 /* Short landscape screens: a slimmer bar keeps room for content (icon + label need 44px) */
 @media (max-height: 480px) and (orientation: landscape) {
   ion-tab-bar.pl-nav {
     height: calc(56px + var(--ion-safe-area-bottom, 0px));
+  }
+}
+
+/* Desktop: the five destinations become a left sidebar (same items, same order) */
+@media (min-width: 900px) {
+  ion-tabs {
+    flex-direction: row-reverse;
+  }
+  ion-tab-bar.pl-nav {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: var(--space-1);
+    /* Ionic forces content-box on the bar: 215 + 2 x 12 padding + 1 border = a 240px sidebar */
+    width: 215px;
+    max-width: none;
+    height: auto;
+    margin: 0;
+    padding: var(--space-8) var(--space-3) var(--space-6);
+    padding-left: max(var(--space-3), var(--ion-safe-area-left, 0px));
+    --border: 0;
+    border-right: 1px solid var(--border-subtle);
+    border-inline-start: 0;
+  }
+  ion-tab-bar.pl-nav::before {
+    content: 'Pulse';
+    display: block;
+    padding: 0 var(--space-4) var(--space-6);
+    font: var(--type-title-md);
+    letter-spacing: var(--type-title-md-tracking);
+    color: var(--text);
+  }
+  ion-tab-bar.pl-nav ion-tab-button {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    height: var(--size-tap);
+    min-height: var(--size-tap);
+    border-radius: var(--radius-md);
+    font: var(--type-body-strong);
+    letter-spacing: 0;
+  }
+  ion-tab-bar.pl-nav ion-tab-button::part(native) {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 0 var(--space-4);
+  }
+  ion-tab-bar.pl-nav ion-tab-button.tab-selected {
+    background: var(--surface-overlay);
+  }
+  ion-tab-bar.pl-nav .pl-nav__item {
+    flex-direction: row;
+    gap: var(--space-3);
+  }
+  ion-tab-bar.pl-nav .pl-nav__item ion-label {
+    font: var(--type-body-strong);
+    letter-spacing: 0;
+  }
+  .pl-nav__marker {
+    top: 50%;
+    left: 0;
+    width: 3px;
+    height: 24px;
+    margin: -12px 0 0;
+    border-radius: 0 3px 3px 0;
   }
 }
 ion-tab-bar.pl-nav ion-tab-button {
