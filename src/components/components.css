@@ -492,6 +492,7 @@ ion-item.pl-listrow--dashed {
 .pl-chart__value {
   font: 700 13px/18px var(--font-sans);
   color: var(--text);
+  white-space: nowrap;
 }
 
 /* ---------- BottomNav (IonTabBar) ---------- */

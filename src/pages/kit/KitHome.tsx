@@ -13,6 +13,7 @@ const profile: ProfileRow = {
   display_name: null,
   workouts_per_week: 4,
   move_goal_kcal: 600,
+  active_goal_min: 45,
   main_focus: 'Build strength',
   units: 'metric',
   reminders_enabled: true,

@@ -1,0 +1,90 @@
+.progress-chart .pl-chart {
+  margin-top: var(--space-2);
+}
+.progress-legend {
+  width: 16px;
+  border-top: 2px dashed var(--text-muted);
+}
+.progress-delta {
+  font: 600 13px/18px var(--font-sans);
+  color: var(--accent);
+}
+.progress-delta--down {
+  color: var(--text-secondary);
+}
+
+.progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 72px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.progress-row .t-num {
+  flex: none;
+}
+.progress-row .t-num .pl-stat__unit {
+  font-size: 13px;
+}
+
+/* Training calendar */
+.cal {
+  padding: var(--space-4) var(--space-3);
+}
+.cal__title {
+  padding: 0 var(--space-1) var(--space-3);
+}
+.cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  row-gap: var(--space-1);
+  justify-items: center;
+}
+.cal__weekday {
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+  color: var(--text-muted);
+  padding-bottom: var(--space-2);
+}
+.cal__day {
+  width: 44px;
+  height: 44px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  font: 600 15px/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color var(--motion-press);
+}
+.cal__day:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+.cal__day:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.cal__day--active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.cal__day--today {
+  border-color: var(--accent);
+}
+.cal__day--selected {
+  border-color: var(--text);
+}
+.cal__day--active.cal__day--selected {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text);
+  border-color: transparent;
+}

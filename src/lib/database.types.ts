@@ -34,6 +34,8 @@ export type ProfileRow = {
   display_name: string | null;
   workouts_per_week: number;
   move_goal_kcal: number;
+  /** Daily active-time goal in minutes (Progress chart goal line). */
+  active_goal_min: number;
   main_focus: string;
   units: Units;
   reminders_enabled: boolean;
@@ -189,7 +191,11 @@ export type Database = {
           Rel<'set_logs_exercise_id_fkey', 'exercise_id', 'workout_exercises'>,
         ]
       >;
-      activity_logs: Table<ActivityLogRow, 'user_id' | 'type' | 'duration_min'>;
+      activity_logs: Table<
+        ActivityLogRow,
+        'user_id' | 'type' | 'duration_min',
+        [Rel<'activity_logs_session_id_fkey', 'session_id', 'workout_sessions'>]
+      >;
       personal_records: Table<PersonalRecordRow, 'user_id' | 'name' | 'value' | 'unit'>;
       achievements: Table<AchievementRow, 'code' | 'name' | 'description' | 'icon'>;
       user_achievements: Table<

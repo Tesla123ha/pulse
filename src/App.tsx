@@ -23,10 +23,12 @@ import KitHome from './pages/kit/KitHome';
 import KitSession from './pages/kit/KitSession';
 import KitFinish from './pages/kit/KitFinish';
 import KitWorkouts from './pages/kit/KitWorkouts';
+import KitProgress from './pages/kit/KitProgress';
 import Placeholder from './pages/Placeholder';
 import Session from './pages/Session';
 import Finish from './pages/Finish';
 import Workouts from './pages/Workouts';
+import Progress from './pages/Progress';
 import { renderBottomNav } from './components';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 
@@ -45,7 +47,7 @@ const Tabs: React.FC = () => {
           <Workouts />
         </Route>
         <Route exact path="/progress">
-          <Placeholder title="Progress" />
+          <Progress />
         </Route>
         <Route exact path="/profile">
           <Placeholder title="Profile" showSignOut />
@@ -108,6 +110,11 @@ const SignedIn: React.FC = () => (
     {import.meta.env.DEV && (
       <Route exact path="/kit/workouts">
         <KitWorkouts />
+      </Route>
+    )}
+    {import.meta.env.DEV && (
+      <Route exact path="/kit/progress">
+        <KitProgress />
       </Route>
     )}
     <Route exact path="/">
