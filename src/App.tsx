@@ -32,7 +32,7 @@ import Workouts from './pages/Workouts';
 import Progress from './pages/Progress';
 import Profile from './pages/Profile';
 import Money from './pages/Money';
-import { MotionProvider, renderBottomNav } from './components';
+import { MotionProvider, SyncStatus, renderBottomNav } from './components';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
@@ -44,26 +44,30 @@ setupIonicReact({ mode: 'ios' });
 const Tabs: React.FC = () => {
   const { pathname } = useLocation();
   return (
-    <IonTabs>
-      <IonRouterOutlet>
-        <Route exact path="/home">
-          <Home />
-        </Route>
-        <Route exact path="/workouts">
-          <Workouts />
-        </Route>
-        <Route exact path="/money">
-          <Money />
-        </Route>
-        <Route exact path="/progress">
-          <Progress />
-        </Route>
-        <Route exact path="/profile">
-          <Profile />
-        </Route>
-      </IonRouterOutlet>
-      {renderBottomNav(pathname)}
-    </IonTabs>
+    <>
+      <IonTabs>
+        <IonRouterOutlet>
+          <Route exact path="/home">
+            <Home />
+          </Route>
+          <Route exact path="/workouts">
+            <Workouts />
+          </Route>
+          <Route exact path="/money">
+            <Money />
+          </Route>
+          <Route exact path="/progress">
+            <Progress />
+          </Route>
+          <Route exact path="/profile">
+            <Profile />
+          </Route>
+        </IonRouterOutlet>
+        {renderBottomNav(pathname)}
+      </IonTabs>
+      {/* Tab pages only: /session and /finish have their own footers */}
+      <SyncStatus />
+    </>
   );
 };
 

@@ -19,3 +19,4 @@ export { default as Toggle } from './Toggle';
 export { default as Sheet } from './Sheet';
 export { MotionProvider, Reveal, ScrimFade, SheetRise, Stagger, StaggerItem } from './Motion';
 export { default as NumberField } from './NumberField';
+export { default as SyncStatus } from './SyncStatus';
