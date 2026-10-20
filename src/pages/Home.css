@@ -12,8 +12,14 @@
 }
 .home-ring__value {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px;
+  gap: 0 6px;
+}
+/* Shrink the ring on narrow phones so the numbers beside it keep their room */
+.home-ring .pl-ring {
+  width: clamp(88px, 30vw, var(--size-ring));
+  height: clamp(88px, 30vw, var(--size-ring));
 }
 
 .home-workout {
@@ -29,6 +35,12 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-2);
+}
+/* Under 360px four tiles are 64px wide and long values like "10,000 m" overflow: use two columns */
+@media (max-width: 359px) {
+  .quicklog {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 ion-button.pl-btn.quicklog__tile {
   --border-radius: var(--radius-md);

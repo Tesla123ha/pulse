@@ -16,7 +16,25 @@
   align-items: center;
   gap: var(--space-2);
 }
-.logex__set--off .logex__label {
+.logex__set--off .logex__fields {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+/* Under 360px the label, both fields and the checkbox no longer fit on one line:
+   the fields drop under the label instead of squeezing it to nothing */
+@media (max-width: 359px) {
+  .logex__set {
+    flex-wrap: wrap;
+  }
+  .logex__fields {
+    flex: 1 1 100%;
+    justify-content: space-between;
+    padding-left: 36px;
+  }
+}
+.logex__label {
   color: var(--text-muted);
 }
 .logex__label {

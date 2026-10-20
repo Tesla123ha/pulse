@@ -44,7 +44,11 @@ function initialRows(ex: WorkoutExerciseRow, history: SetLogRow[], units: Units)
 }
 
 /** Checkbox-style toggle for one set: filled with text when included (filled-selection rule). */
-const SetCheck: React.FC<{ checked: boolean; label: string; onToggle: () => void }> = ({ checked, label, onToggle }) => (
+const SetCheck: React.FC<{ checked: boolean; label: string; onToggle: () => void }> = ({
+  checked,
+  label,
+  onToggle,
+}) => (
   <button
     type="button"
     className={`setcheck${checked ? ' setcheck--on' : ''}`}
@@ -75,24 +79,30 @@ const ExerciseCard: React.FC<{
       <ul className="logex__sets">
         {rows.map((r, i) => (
           <li key={i} className={`logex__set${r.done ? '' : ' logex__set--off'}`}>
-            <SetCheck checked={r.done} label={`Include ${ex.name} set ${i + 1}`} onToggle={() => update(i, { done: !r.done })} />
+            <SetCheck
+              checked={r.done}
+              label={`Include ${ex.name} set ${i + 1}`}
+              onToggle={() => update(i, { done: !r.done })}
+            />
             <span className="logex__label">Set {i + 1}</span>
-            <NumberField
-              label={`${ex.name} set ${i + 1} ${ex.load_unit === 'stack' ? 'stack level' : 'weight'}`}
-              value={r.load}
-              suffix={unit}
-              max={1000}
-              disabled={!r.done}
-              onChange={(load) => update(i, { load })}
-            />
-            <NumberField
-              label={`${ex.name} set ${i + 1} ${repsUnit === 's' ? 'seconds' : 'reps'}`}
-              value={r.reps}
-              suffix={repsUnit}
-              max={repsUnit === 's' ? 600 : 100}
-              disabled={!r.done}
-              onChange={(reps) => update(i, { reps: Math.round(reps) })}
-            />
+            <span className="logex__fields">
+              <NumberField
+                label={`${ex.name} set ${i + 1} ${ex.load_unit === 'stack' ? 'stack level' : 'weight'}`}
+                value={r.load}
+                suffix={unit}
+                max={1000}
+                disabled={!r.done}
+                onChange={(load) => update(i, { load })}
+              />
+              <NumberField
+                label={`${ex.name} set ${i + 1} ${repsUnit === 's' ? 'seconds' : 'reps'}`}
+                value={r.reps}
+                suffix={repsUnit}
+                max={repsUnit === 's' ? 600 : 100}
+                disabled={!r.done}
+                onChange={(reps) => update(i, { reps: Math.round(reps) })}
+              />
+            </span>
           </li>
         ))}
       </ul>

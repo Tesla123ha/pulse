@@ -80,8 +80,14 @@ p {
   gap: var(--space-3);
   padding: var(--space-10) var(--space-5) var(--space-6);
   padding-top: calc(var(--space-10) + var(--ion-safe-area-top, 0px));
+  /* Landscape phones: keep content clear of notches and rounded corners */
+  padding-left: max(var(--space-5), var(--ion-safe-area-left, 0px));
+  padding-right: max(var(--space-5), var(--ion-safe-area-right, 0px));
+  /* Phone-width column, centered on tablets and desktop (the design is a phone layout) */
   max-width: 480px;
   margin: 0 auto;
+  /* Long names and notes wrap instead of widening the page */
+  overflow-wrap: break-word;
 }
 .section {
   display: flex;
