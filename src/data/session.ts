@@ -1,10 +1,12 @@
-import { supabase } from '../lib/supabase';
 import { estimateKcal } from '../lib/activity';
 import { dateKey } from '../lib/dates';
 import type { ProfileRow, SetLogRow, WorkoutExerciseRow, WorkoutRow, WorkoutSessionRow } from '../lib/database.types';
 import { storedLoad } from '../lib/load';
 import { buildModel, elapsedSeconds } from '../lib/session';
-import { maybe, must } from './useLoader';
+import { getDb } from '../offline/db';
+import { localWrite } from '../offline/outbox';
+import { newActivityRow, newPersonalRecordRow, newSessionRow, newSetLogRow } from '../offline/rows';
+import { byTimeDesc } from './sort';
 
 export interface SessionData {
   session: WorkoutSessionRow;
@@ -20,38 +22,36 @@ export interface SessionData {
 const OPEN = ['in_progress', 'paused'] as const;
 
 async function loadSession(session: WorkoutSessionRow, userId: string): Promise<SessionData> {
+  const db = getDb();
   const [workout, exercises, sets, profile] = await Promise.all([
-    supabase.from('workouts').select('*').eq('id', session.workout_id).single().then(must),
-    supabase.from('workout_exercises').select('*').eq('workout_id', session.workout_id).order('position').then(must),
-    supabase.from('set_logs').select('*').eq('session_id', session.id).then(must),
-    supabase.from('profiles').select('units').eq('id', userId).single().then(must),
+    db.workouts.get(session.workout_id),
+    db.workout_exercises.where('workout_id').equals(session.workout_id).toArray(),
+    db.set_logs.where('session_id').equals(session.id).toArray(),
+    db.profiles.get(userId),
   ]);
-  const history = exercises.length
-    ? must(
-        await supabase
-          .from('set_logs')
-          .select('*')
-          .in(
-            'exercise_id',
-            exercises.map((e) => e.id),
-          )
-          .neq('session_id', session.id)
-          .order('logged_at', { ascending: false })
-          .limit(200),
-      )
+  if (!workout) throw new Error('This workout is not available on this device yet.');
+  if (!profile) throw new Error('Your profile is not available yet.');
+  exercises.sort((a, b) => a.position - b.position);
+  const ids = exercises.map((e) => e.id);
+  const history = ids.length
+    ? (await db.set_logs.where('exercise_id').anyOf(ids).filter((s) => s.session_id !== session.id).toArray())
+        .sort(byTimeDesc)
+        .slice(0, 200)
     : [];
   return { session, workout, exercises, sets, history, units: profile.units };
 }
 
+const findOpen = () => getDb().workout_sessions.where('status').anyOf(...OPEN).first();
+
 /** The open session, or null when there is none. */
 export async function loadOpenSession(userId: string): Promise<SessionData | null> {
-  const open = maybe(await supabase.from('workout_sessions').select('*').in('status', OPEN).maybeSingle());
+  const open = await findOpen();
   return open ? loadSession(open, userId) : null;
 }
 
 /**
  * Returns the open session, starting one for `workoutId` when none is open.
- * A database constraint allows one open session per user, so this never duplicates.
+ * Only one session may be open at a time, so this never duplicates.
  */
 export async function loadOrStartSession(
   userId: string,
@@ -59,14 +59,16 @@ export async function loadOrStartSession(
 ): Promise<SessionData | null> {
   const existing = await loadOpenSession(userId);
   if (existing || !start) return existing;
-  const created = must(
-    await supabase
-      .from('workout_sessions')
-      .insert({ user_id: userId, workout_id: start.workoutId, plan_workout_id: start.planWorkoutId })
-      .select('*')
-      .single(),
-  );
-  return loadSession(created, userId);
+  const db = getDb();
+  let created: WorkoutSessionRow | null = null;
+  await localWrite(db, ['workout_sessions'], async (w) => {
+    // Checked again inside the transaction so two quick starts cannot both create one.
+    if (await findOpen()) return;
+    created = newSessionRow({ user_id: userId, workout_id: start.workoutId, plan_workout_id: start.planWorkoutId });
+    await w.upsert('workout_sessions', created);
+  });
+  const open = created ?? (await findOpen());
+  return open ? loadSession(open, userId) : null;
 }
 
 export async function logSet(input: {
@@ -77,26 +79,36 @@ export async function logSet(input: {
   load: number;
   reps: number;
 }): Promise<SetLogRow> {
+  const db = getDb();
   const stack = input.exercise.load_unit === 'stack';
   const load = Math.round(input.load * 100) / 100;
-  return must(
-    await supabase
-      .from('set_logs')
-      .insert({
-        session_id: input.sessionId,
-        exercise_id: input.exercise.id,
-        set_number: input.setNumber,
-        weight_kg: stack ? 0 : load,
-        stack_level: stack ? load : null,
-        reps: input.reps,
-      })
-      .select('*')
-      .single(),
-  );
+  const row = newSetLogRow({
+    session_id: input.sessionId,
+    exercise_id: input.exercise.id,
+    set_number: input.setNumber,
+    weight_kg: stack ? 0 : load,
+    stack_level: stack ? load : null,
+    reps: input.reps,
+  });
+  await localWrite(db, ['set_logs'], async (w) => {
+    // Mirrors the database's unique (session, exercise, set number).
+    const clash = await db.set_logs
+      .where('session_id')
+      .equals(row.session_id)
+      .filter((s) => s.exercise_id === row.exercise_id && s.set_number === row.set_number)
+      .first();
+    if (clash) throw new Error('That set is already logged.');
+    await w.upsert('set_logs', row);
+  });
+  return row;
 }
 
 async function updateSession(id: string, patch: Partial<WorkoutSessionRow>): Promise<WorkoutSessionRow> {
-  return must(await supabase.from('workout_sessions').update(patch).eq('id', id).select('*').single());
+  const db = getDb();
+  await localWrite(db, ['workout_sessions'], (w) => w.update('workout_sessions', id, patch));
+  const row = await db.workout_sessions.get(id);
+  if (!row) throw new Error('This workout session no longer exists.');
+  return row;
 }
 
 export function pauseSession(s: WorkoutSessionRow) {
@@ -135,8 +147,9 @@ export function saveNotes(s: WorkoutSessionRow, notes: string) {
  */
 export async function endSession(data: SessionData, userId: string): Promise<void> {
   const { session, exercises, sets } = data;
+  const db = getDb();
   if (sets.length === 0) {
-    maybe(await supabase.from('workout_sessions').delete().eq('id', session.id));
+    await localWrite(db, ['workout_sessions'], (w) => w.remove('workout_sessions', session.id));
     return;
   }
 
@@ -145,54 +158,50 @@ export async function endSession(data: SessionData, userId: string): Promise<voi
   const seconds = elapsedSeconds(session, now);
   const pausedExtra = session.paused_at ? Math.round((now.getTime() - new Date(session.paused_at).getTime()) / 1000) : 0;
   const status = model.allDone ? 'completed' : 'ended_early';
-
-  await updateSession(session.id, {
-    status,
-    ended_at: now.toISOString(),
-    paused_at: null,
-    paused_seconds: session.paused_seconds + Math.max(0, pausedExtra),
-  });
-
   const minutes = Math.max(1, Math.round(seconds / 60));
-  maybe(
-    await supabase.from('activity_logs').insert({
-      user_id: userId,
-      type: 'lift',
-      duration_min: minutes,
-      kcal: estimateKcal('lift', minutes),
-      logged_at: now.toISOString(),
-      session_id: session.id,
-    }),
-  );
 
-  if (status === 'completed' && session.plan_workout_id) {
-    maybe(
-      await supabase
-        .from('plan_workouts')
-        .update({ completed_session_id: session.id, completed_at: now.toISOString() })
-        .eq('id', session.plan_workout_id),
+  await localWrite(db, ['workout_sessions', 'activity_logs', 'plan_workouts', 'personal_records', 'set_logs'], async (w) => {
+    await w.update('workout_sessions', session.id, {
+      status,
+      ended_at: now.toISOString(),
+      paused_at: null,
+      paused_seconds: session.paused_seconds + Math.max(0, pausedExtra),
+    });
+
+    await w.upsert(
+      'activity_logs',
+      newActivityRow({
+        user_id: userId,
+        type: 'lift',
+        duration_min: minutes,
+        kcal: estimateKcal('lift', minutes),
+        logged_at: now.toISOString(),
+        session_id: session.id,
+      }),
     );
-  }
 
-  // Personal records: a heavier load than any earlier session for that exercise.
-  const ids = [...new Set(sets.map((s) => s.exercise_id))];
-  const prior = must(
-    await supabase
-      .from('set_logs')
-      .select('exercise_id, weight_kg, stack_level')
-      .in('exercise_id', ids)
-      .neq('session_id', session.id)
-      .limit(5000),
-  );
-  const records = ids.flatMap((id) => {
-    const ex = exercises.find((e) => e.id === id);
-    if (!ex) return [];
-    const best = Math.max(...sets.filter((s) => s.exercise_id === id).map((s) => storedLoad(s, ex)));
-    const previous = prior.filter((p) => p.exercise_id === id).map((p) => storedLoad(p, ex));
-    const previousBest = previous.length ? Math.max(...previous) : 0;
-    return previousBest > 0 && best > previousBest
-      ? [{ user_id: userId, name: ex.name, value: best, unit: ex.load_unit, achieved_on: dateKey(now) }]
-      : [];
+    if (status === 'completed' && session.plan_workout_id) {
+      await w.update('plan_workouts', session.plan_workout_id, {
+        completed_session_id: session.id,
+        completed_at: now.toISOString(),
+      });
+    }
+
+    // Personal records: a heavier load than any earlier session for that exercise.
+    const ids = [...new Set(sets.map((s) => s.exercise_id))];
+    const prior = await db.set_logs.where('exercise_id').anyOf(ids).filter((s) => s.session_id !== session.id).toArray();
+    for (const id of ids) {
+      const ex = exercises.find((e) => e.id === id);
+      if (!ex) continue;
+      const best = Math.max(...sets.filter((s) => s.exercise_id === id).map((s) => storedLoad(s, ex)));
+      const previous = prior.filter((p) => p.exercise_id === id).map((p) => storedLoad(p, ex));
+      const previousBest = previous.length ? Math.max(...previous) : 0;
+      if (previousBest > 0 && best > previousBest) {
+        await w.upsert(
+          'personal_records',
+          newPersonalRecordRow({ user_id: userId, name: ex.name, value: best, unit: ex.load_unit, achieved_on: dateKey(now) }),
+        );
+      }
+    }
   });
-  if (records.length) maybe(await supabase.from('personal_records').insert(records));
 }

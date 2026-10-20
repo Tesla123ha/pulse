@@ -1,6 +1,5 @@
-import { supabase } from '../lib/supabase';
+import { getDb } from '../offline/db';
 import type { WorkoutExerciseRow, WorkoutRow } from '../lib/database.types';
-import { maybe, must } from './useLoader';
 
 export interface WorkoutWithExercises extends WorkoutRow {
   exercises: WorkoutExerciseRow[];
@@ -27,32 +26,25 @@ export interface WorkoutsData {
 }
 
 export async function loadWorkouts(): Promise<WorkoutsData> {
-  const [workouts, plan, open] = await Promise.all([
-    supabase
-      .from('workouts')
-      .select('*, exercises:workout_exercises(*)')
-      .order('name')
-      .then(must),
-    supabase
-      .from('user_plans')
-      .select('name, total_weeks, plan_workouts(id, position, week_number, completed_at, workout:workouts(id, name))')
-      .eq('is_active', true)
-      .maybeSingle()
-      .then(maybe),
-    supabase
-      .from('workout_sessions')
-      .select('id, workout:workouts(id, name)')
-      .in('status', ['in_progress', 'paused'])
-      .maybeSingle()
-      .then(maybe),
+  const db = getDb();
+  const [workouts, exercises, plan, open] = await Promise.all([
+    db.workouts.toArray(),
+    db.workout_exercises.toArray(),
+    db.user_plans.filter((p) => p.is_active).first(),
+    db.workout_sessions.where('status').anyOf('in_progress', 'paused').first(),
   ]);
+  const byWorkout = new Map<string, WorkoutExerciseRow[]>();
+  for (const e of exercises) byWorkout.set(e.workout_id, [...(byWorkout.get(e.workout_id) ?? []), e]);
+  const nameOf = new Map(workouts.map((w) => [w.id, w.name]));
 
   let summary: PlanSummary | null = null;
   let planWorkoutIds: string[] = [];
   if (plan) {
-    const slots = [...plan.plan_workouts].sort((a, b) => a.position - b.position);
+    const slots = (await db.plan_workouts.where('plan_id').equals(plan.id).toArray()).sort(
+      (a, b) => a.position - b.position,
+    );
     const nextSlot = slots.find((s) => !s.completed_at);
-    planWorkoutIds = [...new Set(slots.map((s) => s.workout?.id).filter((id): id is string => Boolean(id)))];
+    planWorkoutIds = [...new Set(slots.map((s) => s.workout_id).filter((id) => nameOf.has(id)))];
     summary = {
       name: plan.name,
       totalWeeks: plan.total_weeks,
@@ -60,19 +52,22 @@ export async function loadWorkouts(): Promise<WorkoutsData> {
       done: slots.filter((s) => s.completed_at).length,
       total: slots.length,
       next:
-        nextSlot && nextSlot.workout
-          ? { slotId: nextSlot.id, workoutId: nextSlot.workout.id, workoutName: nextSlot.workout.name }
+        nextSlot && nameOf.has(nextSlot.workout_id)
+          ? { slotId: nextSlot.id, workoutId: nextSlot.workout_id, workoutName: nameOf.get(nextSlot.workout_id) as string }
           : null,
     };
   }
 
+  const openName = open ? nameOf.get(open.workout_id) : undefined;
   return {
-    workouts: workouts.map((w) => ({
-      ...w,
-      exercises: [...w.exercises].sort((a, b) => a.position - b.position),
-    })),
+    workouts: [...workouts]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((w) => ({
+        ...w,
+        exercises: [...(byWorkout.get(w.id) ?? [])].sort((a, b) => a.position - b.position),
+      })),
     plan: summary,
-    openSession: open?.workout ? { id: open.id, workoutId: open.workout.id, workoutName: open.workout.name } : null,
+    openSession: open && openName !== undefined ? { id: open.id, workoutId: open.workout_id, workoutName: openName } : null,
     planWorkoutIds,
   };
 }

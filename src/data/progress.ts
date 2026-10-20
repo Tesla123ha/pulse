@@ -1,6 +1,7 @@
-import { supabase } from '../lib/supabase';
 import type { ActivityLogRow, PersonalRecordRow, ProfileRow } from '../lib/database.types';
-import { must } from './useLoader';
+import { getDb } from '../offline/db';
+import { inflightSeqs, localWrite } from '../offline/outbox';
+import { byTimeDesc } from './sort';
 
 export type ProgressActivity = ActivityLogRow & { workoutName: string | null };
 
@@ -14,26 +15,26 @@ export interface ProgressData {
 }
 
 export async function loadProgress(userId: string): Promise<ProgressData> {
-  const [profile, activity, sessions, records] = await Promise.all([
-    supabase.from('profiles').select('units, active_goal_min').eq('id', userId).single().then(must),
-    supabase
-      .from('activity_logs')
-      .select('*, session:workout_sessions(workout:workouts(name))')
-      .order('logged_at', { ascending: false })
-      .limit(10000)
-      .then(must),
-    supabase
-      .from('workout_sessions')
-      .select('ended_at')
-      .in('status', ['completed', 'ended_early'])
-      .not('ended_at', 'is', null)
-      .then(must),
-    supabase.from('personal_records').select('*').then(must),
+  const db = getDb();
+  const [profile, activity, sessions, records, workouts] = await Promise.all([
+    db.profiles.get(userId),
+    db.activity_logs.toArray(),
+    db.workout_sessions.toArray(),
+    db.personal_records.toArray(),
+    db.workouts.toArray(),
   ]);
+  if (!profile) throw new Error('Your profile is not available yet.');
+  const workoutOf = new Map(sessions.map((s) => [s.id, s.workout_id]));
+  const nameOf = new Map(workouts.map((w) => [w.id, w.name]));
   return {
-    profile,
-    activity: activity.map(({ session, ...a }) => ({ ...a, workoutName: session?.workout?.name ?? null })),
-    sessionsEndedAt: sessions.map((s) => s.ended_at).filter((t): t is string => Boolean(t)),
+    profile: { units: profile.units, active_goal_min: profile.active_goal_min },
+    activity: activity.sort(byTimeDesc).map((a) => ({
+      ...a,
+      workoutName: (a.session_id && nameOf.get(workoutOf.get(a.session_id) ?? '')) || null,
+    })),
+    sessionsEndedAt: sessions
+      .filter((s) => (s.status === 'completed' || s.status === 'ended_early') && s.ended_at)
+      .map((s) => s.ended_at as string),
     records,
   };
 }
@@ -43,18 +44,25 @@ export async function loadProgress(userId: string): Promise<ProgressData> {
  * session and logged sets, and un-ticks the plan slot it completed.
  */
 export async function deleteActivity(a: Pick<ProgressActivity, 'id' | 'session_id'>): Promise<void> {
-  if (a.session_id) {
-    must(
-      await supabase
-        .from('plan_workouts')
-        .update({ completed_session_id: null, completed_at: null })
-        .eq('completed_session_id', a.session_id)
-        .select('id'),
-    );
-  }
-  must(await supabase.from('activity_logs').delete().eq('id', a.id).select('id'));
-  if (a.session_id) {
-    // Set logs go with the session (on delete cascade).
-    must(await supabase.from('workout_sessions').delete().eq('id', a.session_id).select('id'));
-  }
+  const db = getDb();
+  await localWrite(db, ['plan_workouts', 'activity_logs', 'workout_sessions', 'set_logs'], async (w) => {
+    if (a.session_id) {
+      await w.updateWhere('plan_workouts', { completed_session_id: a.session_id }, { completed_session_id: null, completed_at: null });
+    }
+    await w.remove('activity_logs', a.id);
+    if (a.session_id) {
+      // The server deletes the sets with the session (on delete cascade); mirror that here without queuing
+      // deletes. Writes for those sets that never reached the server are dropped so they cannot be pushed.
+      const setIds = (await db.set_logs.where('session_id').equals(a.session_id).primaryKeys()) as string[];
+      await db.set_logs.bulkDelete(setIds);
+      const ids = new Set(setIds);
+      const orphans = await db.outbox
+        .where('table')
+        .equals('set_logs')
+        .filter((o) => ids.has(o.rowKey) && o.status === 'pending' && !inflightSeqs.has(o.seq as number))
+        .primaryKeys();
+      await db.outbox.bulkDelete(orphans);
+      await w.remove('workout_sessions', a.session_id);
+    }
+  });
 }

@@ -15,6 +15,10 @@ export interface SyncState {
   /** Writes the server rejected; they stay until discarded. */
   failed: number;
   lastSyncedAt: string | null;
+  /** True once this device has pulled the server's data at least once. */
+  hasPulled: boolean;
+  /** Local database open and either pulled before or offline (so waiting would be pointless). */
+  ready: boolean;
   syncNow: () => Promise<void>;
   discardFailed: (seq: number) => Promise<void>;
 }
@@ -28,6 +32,7 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [db, setDb] = useState<PulseDB | null>(null);
   const [online, setOnline] = useState(isOnline());
   const [status, setStatus] = useState({ syncing: false, lastSyncedAt: null as string | null });
+  const [pulledBefore, setPulledBefore] = useState(false);
   const [counts, setCounts] = useState({ pending: 0, failed: 0 });
 
   useEffect(() => onNetworkChange(setOnline), []);
@@ -37,8 +42,12 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!userId) return;
     let stop: (() => void) | undefined;
     let cancelled = false;
-    void openUserDb(userId).then((opened) => {
+    void openUserDb(userId).then(async (opened) => {
       if (cancelled) return;
+      // Read before exposing the db so loaders never see a false "never pulled".
+      const meta = await opened.meta.get('lastPulledAt');
+      if (cancelled) return;
+      setPulledBefore(typeof meta?.value === 'string');
       setDb(opened);
       stop = startSync(opened, userId);
     });
@@ -46,6 +55,7 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       cancelled = true;
       stop?.();
       setDb(null);
+      setPulledBefore(false);
       closeUserDb();
     };
   }, [userId]);
@@ -59,10 +69,10 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => sub.unsubscribe();
   }, [db]);
 
-  const value = useMemo<SyncState>(
-    () => ({ db, online, ...status, ...counts, syncNow, discardFailed }),
-    [db, online, status, counts],
-  );
+  const value = useMemo<SyncState>(() => {
+    const hasPulled = pulledBefore || status.lastSyncedAt !== null;
+    return { db, online, ...status, ...counts, hasPulled, ready: db !== null && (hasPulled || !online), syncNow, discardFailed };
+  }, [db, online, status, counts, pulledBefore]);
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>;
 };
 

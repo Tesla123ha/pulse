@@ -1,8 +1,10 @@
-import { supabase } from '../lib/supabase';
 import { addDays, dateKey, lastDays, startOfDay, weekdayLetter, weekdayName } from '../lib/dates';
-import type { ActivityLogRow, ActivityType, MatchType, ProfileRow, SwimVenue } from '../lib/database.types';
+import type { ActivityLogRow, ActivityType, MatchType, ProfileRow, SwimVenue, WorkoutRow } from '../lib/database.types';
 import type { WeekDay } from '../components';
-import { maybe, must } from './useLoader';
+import { getDb } from '../offline/db';
+import { localWrite } from '../offline/outbox';
+import { newActivityRow } from '../offline/rows';
+import { byTimeDesc } from './sort';
 
 export interface HomeWorkout {
   workoutId: string;
@@ -27,16 +29,9 @@ export interface HomeData {
   lastByType: Partial<Record<ActivityType, ActivityLogRow>>;
 }
 
-type WorkoutWithCount = {
-  id: string;
-  name: string;
-  duration_min: number;
-  level: string;
-  workout_exercises: { count: number }[];
-};
-
 const toHomeWorkout = (
-  w: WorkoutWithCount,
+  w: WorkoutRow,
+  exerciseCount: number,
   planWorkoutId: string | null,
   openSessionId: string | null,
 ): HomeWorkout => ({
@@ -44,7 +39,7 @@ const toHomeWorkout = (
   name: w.name,
   durationMin: w.duration_min,
   level: w.level,
-  exerciseCount: w.workout_exercises[0]?.count ?? 0,
+  exerciseCount,
   planWorkoutId,
   openSessionId,
 });
@@ -61,43 +56,32 @@ function streakFrom(activeKeys: Set<string>, today: Date): number {
 }
 
 async function loadTodaysWorkout(): Promise<HomeWorkout | null> {
+  const db = getDb();
+  const withCount = async (w: WorkoutRow, planWorkoutId: string | null, openSessionId: string | null) =>
+    toHomeWorkout(w, await db.workout_exercises.where('workout_id').equals(w.id).count(), planWorkoutId, openSessionId);
+
   // 1. A session already in progress wins.
-  const open = maybe(
-    await supabase
-      .from('workout_sessions')
-      .select('id, plan_workout_id, workout:workouts(id, name, duration_min, level, workout_exercises(count))')
-      .in('status', ['in_progress', 'paused'])
-      .maybeSingle(),
-  );
-  if (open?.workout) {
-    return toHomeWorkout(open.workout, open.plan_workout_id, open.id);
-  }
+  const open = await db.workout_sessions.where('status').anyOf('in_progress', 'paused').first();
+  const openWorkout = open ? await db.workouts.get(open.workout_id) : undefined;
+  if (open && openWorkout) return withCount(openWorkout, open.plan_workout_id, open.id);
 
   // 2. Otherwise the next unfinished workout of the active plan.
-  const plan = maybe(
-    await supabase
-      .from('user_plans')
-      .select('id, plan_workouts(id, position, completed_at, workout:workouts(id, name, duration_min, level, workout_exercises(count)))')
-      .eq('is_active', true)
-      .maybeSingle(),
-  );
-  const slots = (plan?.plan_workouts ?? [])
-    .filter((s) => !s.completed_at && s.workout)
-    .sort((a, b) => a.position - b.position);
-  if (slots[0]?.workout) return toHomeWorkout(slots[0].workout, slots[0].id, null);
+  const plan = await db.user_plans.filter((p) => p.is_active).first();
+  if (plan) {
+    const slots = (await db.plan_workouts.where('plan_id').equals(plan.id).toArray())
+      .filter((s) => !s.completed_at)
+      .sort((a, b) => a.position - b.position);
+    for (const slot of slots) {
+      const w = await db.workouts.get(slot.workout_id);
+      if (w) return withCount(w, slot.id, null);
+    }
+  }
 
   // 3. No plan or plan finished: the first built-in workout.
-  const builtIn = maybe(
-    await supabase
-      .from('workouts')
-      .select('id, name, duration_min, level, workout_exercises(count)')
-      .is('owner', null)
-      .order('created_at')
-      .order('name')
-      .limit(1)
-      .maybeSingle(),
-  );
-  return builtIn ? toHomeWorkout(builtIn, null, null) : null;
+  const builtIn = (await db.workouts.filter((w) => w.owner === null).toArray()).sort(
+    (a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
+  )[0];
+  return builtIn ? withCount(builtIn, null, null) : null;
 }
 
 export async function loadHome(userId: string): Promise<HomeData> {
@@ -106,17 +90,15 @@ export async function loadHome(userId: string): Promise<HomeData> {
   // A year of activity covers the streak; only the needed columns are read.
   const since = addDays(startOfDay(now), -365).toISOString();
 
-  const [profile, activity, workout] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', userId).single().then(must),
-    supabase
-      .from('activity_logs')
-      .select('*')
-      .gte('logged_at', since)
-      .order('logged_at', { ascending: false })
-      .limit(5000)
-      .then(must),
+  const db = getDb();
+  const sinceMs = new Date(since).getTime();
+  const [profile, allActivity, workout] = await Promise.all([
+    db.profiles.get(userId),
+    db.activity_logs.toArray(),
     loadTodaysWorkout(),
   ]);
+  if (!profile) throw new Error('Your profile is not available yet.');
+  const activity = allActivity.filter((a) => new Date(a.logged_at).getTime() >= sinceMs).sort(byTimeDesc);
 
   const activeKeys = new Set(activity.map((a) => dateKey(new Date(a.logged_at))));
   const days = lastDays(7, now);
@@ -162,19 +144,18 @@ export interface NewActivity {
 }
 
 export async function logActivity(userId: string, a: NewActivity) {
-  maybe(
-    await supabase.from('activity_logs').insert({
-      user_id: userId,
-      type: a.type,
-      duration_min: a.durationMin,
-      kcal: a.kcal,
-      distance_km: a.distanceKm ?? null,
-      pace_sec_per_km: a.paceSecPerKm ?? null,
-      venue: a.venue ?? null,
-      match_type: a.matchType ?? null,
-      wins: a.wins ?? null,
-      losses: a.losses ?? null,
-      ...(a.loggedAt ? { logged_at: a.loggedAt } : {}),
-    }),
-  );
+  const row = newActivityRow({
+    user_id: userId,
+    type: a.type,
+    duration_min: a.durationMin,
+    kcal: a.kcal,
+    distance_km: a.distanceKm ?? null,
+    pace_sec_per_km: a.paceSecPerKm ?? null,
+    venue: a.venue ?? null,
+    match_type: a.matchType ?? null,
+    wins: a.wins ?? null,
+    losses: a.losses ?? null,
+    ...(a.loggedAt ? { logged_at: a.loggedAt } : {}),
+  });
+  await localWrite(getDb(), ['activity_logs'], (w) => w.upsert('activity_logs', row));
 }

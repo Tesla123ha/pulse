@@ -3,8 +3,8 @@ import { useCallback, useState } from 'react';
 import { useUserId } from '../auth/AuthProvider';
 import { Button, Card, Reveal } from '../components';
 import { loadWorkouts, type WorkoutWithExercises } from '../data/workouts';
-import { must, useLoader } from '../data/useLoader';
-import { supabase } from '../lib/supabase';
+import { useLoader } from '../data/useLoader';
+import { getDb } from '../offline/db';
 import type { WorkoutFilter } from '../lib/workouts';
 import WorkoutSheet from './workouts/WorkoutSheet';
 import WorkoutsView from './workouts/WorkoutsView';
@@ -13,10 +13,8 @@ import './Workouts.css';
 const Workouts: React.FC = () => {
   const userId = useUserId();
   const load = useCallback(async () => {
-    const [data, profile] = await Promise.all([
-      loadWorkouts(),
-      supabase.from('profiles').select('units').eq('id', userId).single().then(must),
-    ]);
+    const [data, profile] = await Promise.all([loadWorkouts(), getDb().profiles.get(userId)]);
+    if (!profile) throw new Error('Your profile is not available yet.');
     return { ...data, units: profile.units };
   }, [userId]);
   const { data, error, loading, reload } = useLoader(load);
