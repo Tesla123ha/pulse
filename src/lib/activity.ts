@@ -62,3 +62,15 @@ export const paceFromDisplay = (sec: number, u: Units) => (u === 'imperial' ? se
 
 /** 330 -> "5:30" */
 export const formatPace = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
+
+/** "5:30" -> 330, "5" -> 300, "5.5" -> 330 seconds; null when not a pace. */
+export function parsePace(text: string): number | null {
+  const t = text.trim();
+  const mmss = /^(\d{1,2}):(\d{1,2})$/.exec(t);
+  if (mmss) {
+    const sec = Number(mmss[2]);
+    return sec < 60 ? Number(mmss[1]) * 60 + sec : null;
+  }
+  const minutes = Number(t);
+  return t !== '' && Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes * 60) : null;
+}

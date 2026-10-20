@@ -8,12 +8,13 @@ import {
   paceFromDisplay,
   paceToDisplay,
   paceUnit,
+  parsePace,
   swimToKm,
   swimUnit,
   type ActivityMeta,
 } from '../../lib/activity';
 import type { ActivityLogRow, Units } from '../../lib/database.types';
-import { formatDecimal, formatInt } from '../../lib/format';
+import { formatDecimal2, formatInt } from '../../lib/format';
 import { formatClock } from '../../lib/session';
 import { displayToKm, distanceUnit, kmToDisplay } from '../../lib/units';
 
@@ -125,7 +126,7 @@ const QuickLogSheet: React.FC<QuickLogSheetProps> = ({ activity, last, units, on
       {activity.kind === 'run' && (
         <>
           <Row label={`Distance (${distanceUnit(units)})`}>
-            <Stepper name="distance" value={distance} step={0.5} min={0.5} max={200} onChange={setDistance} format={formatDecimal} />
+            <Stepper name="distance" value={distance} step={0.5} min={0.5} max={200} onChange={setDistance} format={formatDecimal2} />
           </Row>
           {units === 'metric' && (
             <div className="row" style={{ gap: 'var(--space-2)' }} role="group" aria-label="Distance presets">
@@ -135,7 +136,17 @@ const QuickLogSheet: React.FC<QuickLogSheetProps> = ({ activity, last, units, on
             </div>
           )}
           <Row label={`Pace (${paceUnit(units)})`}>
-            <Stepper name="pace" value={pace} step={5} min={120} max={1200} onChange={setPace} format={formatPace} />
+            <Stepper
+              name="pace"
+              value={pace}
+              step={5}
+              min={120}
+              max={1200}
+              onChange={setPace}
+              format={formatPace}
+              parse={parsePace}
+              inputMode="text"
+            />
           </Row>
         </>
       )}

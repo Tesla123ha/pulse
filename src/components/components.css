@@ -391,10 +391,28 @@ ion-item.pl-listrow--dashed {
 }
 .pl-stepper__val {
   flex: 1;
+  min-width: 0;
   text-align: center;
   font: var(--type-numeric-lg);
   letter-spacing: var(--type-numeric-lg-tracking);
   font-variant-numeric: tabular-nums;
+}
+
+/* Typed entry: looks like the value until focused */
+.pl-stepper__input {
+  height: var(--size-tap);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  caret-color: var(--text);
+  transition: background-color var(--motion-press);
+}
+.pl-stepper__input:focus {
+  outline: none;
+  background: var(--surface-overlay);
+  box-shadow: var(--focus-ring);
 }
 
 /* ---------- WeekStrip ---------- */
