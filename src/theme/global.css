@@ -91,7 +91,8 @@ p {
 }
 /* Two-column pairs on wide screens. On phones the wrappers vanish and children stack in source order. */
 .split,
-.split__col {
+.split__col,
+.stack {
   display: contents;
 }
 @media (min-width: 900px) {

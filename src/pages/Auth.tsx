@@ -1,6 +1,6 @@
 import { IonContent, IonInput, IonPage } from '@ionic/react';
 import { useState, type FormEvent } from 'react';
-import { Button, Segmented } from '../components';
+import { Button, Segmented, Stagger, StaggerItem } from '../components';
 import { supabase } from '../lib/supabase';
 import './Auth.css';
 
@@ -45,70 +45,76 @@ const Auth: React.FC = () => {
   return (
     <IonPage>
       <IonContent>
-        <div className="screen auth">
-          <div>
-            <p className="t-cap">Pulse</p>
-            <h1 className="t-title-lg">{signUp ? 'Create your account' : 'Welcome back'}</h1>
-          </div>
+        <Stagger className="screen auth">
+          <StaggerItem>
+            <div>
+              <p className="t-cap">Pulse</p>
+              <h1 className="t-title-lg">{signUp ? 'Create your account' : 'Welcome back'}</h1>
+            </div>
+          </StaggerItem>
 
-          <Segmented label="Account" options={MODES} value={mode} onChange={setMode} />
+          <StaggerItem>
+            <Segmented label="Account" options={MODES} value={mode} onChange={setMode} />
+          </StaggerItem>
 
-          <form className="auth__form" onSubmit={submit} noValidate>
-            {signUp && (
+          <StaggerItem>
+            <form className="auth__form" onSubmit={submit} noValidate>
+              {signUp && (
+                <label className="field">
+                  <span className="field__label">Name</span>
+                  <span className="field__control">
+                    <IonInput
+                      aria-label="Name"
+                      autocomplete="name"
+                      value={name}
+                      onIonInput={(e) => setName(String(e.detail.value ?? ''))}
+                    />
+                  </span>
+                </label>
+              )}
               <label className="field">
-                <span className="field__label">Name</span>
+                <span className="field__label">Email</span>
                 <span className="field__control">
                   <IonInput
-                    aria-label="Name"
-                    autocomplete="name"
-                    value={name}
-                    onIonInput={(e) => setName(String(e.detail.value ?? ''))}
+                    aria-label="Email"
+                    type="email"
+                    inputmode="email"
+                    autocomplete="email"
+                    value={email}
+                    onIonInput={(e) => setEmail(String(e.detail.value ?? ''))}
                   />
                 </span>
               </label>
-            )}
-            <label className="field">
-              <span className="field__label">Email</span>
-              <span className="field__control">
-                <IonInput
-                  aria-label="Email"
-                  type="email"
-                  inputmode="email"
-                  autocomplete="email"
-                  value={email}
-                  onIonInput={(e) => setEmail(String(e.detail.value ?? ''))}
-                />
-              </span>
-            </label>
-            <label className="field">
-              <span className="field__label">Password</span>
-              <span className="field__control">
-                <IonInput
-                  aria-label="Password"
-                  type="password"
-                  autocomplete={signUp ? 'new-password' : 'current-password'}
-                  value={password}
-                  onIonInput={(e) => setPassword(String(e.detail.value ?? ''))}
-                />
-              </span>
-            </label>
+              <label className="field">
+                <span className="field__label">Password</span>
+                <span className="field__control">
+                  <IonInput
+                    aria-label="Password"
+                    type="password"
+                    autocomplete={signUp ? 'new-password' : 'current-password'}
+                    value={password}
+                    onIonInput={(e) => setPassword(String(e.detail.value ?? ''))}
+                  />
+                </span>
+              </label>
 
-            {error && (
-              <p className="auth__error" role="alert">
-                {error}
-              </p>
-            )}
-            {note && (
-              <p className="auth__note" role="status">
-                {note}
-              </p>
-            )}
+              {error && (
+                <p className="auth__error" role="alert">
+                  {error}
+                </p>
+              )}
+              {note && (
+                <p className="auth__note" role="status">
+                  {note}
+                </p>
+              )}
 
-            <Button variant="primary" size="lg" block type="submit" disabled={busy}>
-              {signUp ? 'Create account' : 'Sign in'}
-            </Button>
-          </form>
-        </div>
+              <Button variant="primary" size="lg" block type="submit" disabled={busy}>
+                {signUp ? 'Create account' : 'Sign in'}
+              </Button>
+            </form>
+          </StaggerItem>
+        </Stagger>
       </IonContent>
     </IonPage>
   );

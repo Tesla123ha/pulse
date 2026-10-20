@@ -1,4 +1,9 @@
 import { IonButton } from '@ionic/react';
+import { m } from 'motion/react';
+
+const MotionIonButton = m.create(IonButton);
+const TAP = { scale: 0.96 };
+const PRESS_SPRING = { type: 'spring', stiffness: 520, damping: 32 } as const;
 
 export interface ChipProps {
   label: string;
@@ -8,14 +13,16 @@ export interface ChipProps {
 
 /** Filter pill. Selected fills with `text`, never lime. */
 export const Chip: React.FC<ChipProps> = ({ label, selected, onSelect }) => (
-  <IonButton
+  <MotionIonButton
     fill="clear"
     className={`pl-chip${selected ? ' pl-chip--selected' : ''}`}
     aria-pressed={selected}
     onClick={onSelect}
+    whileTap={TAP}
+    transition={PRESS_SPRING}
   >
     {label}
-  </IonButton>
+  </MotionIonButton>
 );
 
 export interface ChipRowProps<T extends string> {

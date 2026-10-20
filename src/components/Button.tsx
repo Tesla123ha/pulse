@@ -14,7 +14,7 @@ export interface ButtonProps extends Omit<IonButtonProps, 'color' | 'fill' | 'si
   block?: boolean;
   /** Square icon-only button. Requires `aria-label`. */
   iconOnly?: boolean;
-  /** Spring hover and press feedback. Opt-in; scaling is skipped when the user prefers reduced motion. */
+  /** Spring hover and press feedback, on by default. Pass false to opt out. Scaling is skipped for reduced motion. */
   feedback?: boolean;
   children?: ReactNode;
 }
@@ -34,7 +34,7 @@ const Button: React.FC<ButtonProps> = ({
   size = 'md',
   block,
   iconOnly,
-  feedback,
+  feedback = true,
   className,
   children,
   ...rest

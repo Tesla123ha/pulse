@@ -10,7 +10,7 @@ export const HomeHeader: React.FC<{ today: Date }> = ({ today }) => (
       <p className="t-cap">{formatHeaderDate(today)}</p>
       <h1 className="t-title-lg">Today</h1>
     </div>
-    <Button feedback iconOnly aria-label="Notifications" routerLink="/profile">
+    <Button iconOnly aria-label="Notifications" routerLink="/profile">
       <Icon name="bell" />
     </Button>
   </header>
@@ -74,7 +74,7 @@ const HomeView: React.FC<{ data: HomeData; onLog: (a: ActivityMeta) => void }> =
                 <div className="t-cap">
                   {formatInt(workout.durationMin)} min · {plural(workout.exerciseCount, 'exercise')} · {workout.level}
                 </div>
-                <Button feedback variant="primary" size="lg" block routerLink={sessionLink}>
+                <Button variant="primary" size="lg" block routerLink={sessionLink}>
                   {workout.openSessionId ? 'Resume workout' : 'Start workout'}
                   <Icon name="arrowRight" />
                 </Button>
@@ -96,7 +96,6 @@ const HomeView: React.FC<{ data: HomeData; onLog: (a: ActivityMeta) => void }> =
                   return (
                     <Button
                       key={a.type}
-                      feedback
                       variant="ghost"
                       className="quicklog__tile"
                       aria-label={`Log ${a.noun}, last entry ${last}`}

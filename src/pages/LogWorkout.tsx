@@ -2,7 +2,7 @@ import { IonContent, IonFooter, IonPage, useIonRouter } from '@ionic/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUserId } from '../auth/AuthProvider';
-import { Button, Card, ChipRow, Icon, NumberField, Stepper } from '../components';
+import { Button, Card, ChipRow, Icon, NumberField, Stagger, StaggerItem, Stepper } from '../components';
 import { loadPastWorkout, savePastWorkout, type PastSet, type PastWorkoutData } from '../data/pastWorkout';
 import { errorMessage, useLoader } from '../data/useLoader';
 import type { WorkoutWithExercises } from '../data/workouts';
@@ -214,28 +214,35 @@ const LogWorkout: React.FC = () => {
           )}
 
           {data && workout && (
-            <>
-              <ChipRow
-                label="Workout"
-                options={ordered.map((w) => w.name)}
-                value={workout.name}
-                onChange={setWorkoutName}
-              />
-              <div className="row" style={{ justifyContent: 'space-between' }}>
-                <span className="t-cap">Duration (min)</span>
-                <Stepper name="duration" value={duration} step={5} min={5} max={300} onChange={setDuration} />
-              </div>
-              <p className="t-cap">Sets start from what you lifted before this day. Untick any you did not do.</p>
-              {workout.exercises.map((ex) => (
-                <ExerciseCard
-                  key={ex.id}
-                  ex={ex}
-                  rows={rows[ex.id] ?? []}
-                  units={data.units}
-                  onRows={(r) => setRows((all) => ({ ...all, [ex.id]: r }))}
+            <Stagger className="stack">
+              <StaggerItem>
+                <ChipRow
+                  label="Workout"
+                  options={ordered.map((w) => w.name)}
+                  value={workout.name}
+                  onChange={setWorkoutName}
                 />
+              </StaggerItem>
+              <StaggerItem>
+                <div className="row" style={{ justifyContent: 'space-between' }}>
+                  <span className="t-cap">Duration (min)</span>
+                  <Stepper name="duration" value={duration} step={5} min={5} max={300} onChange={setDuration} />
+                </div>
+              </StaggerItem>
+              <StaggerItem>
+                <p className="t-cap">Sets start from what you lifted before this day. Untick any you did not do.</p>
+              </StaggerItem>
+              {workout.exercises.map((ex) => (
+                <StaggerItem key={ex.id}>
+                  <ExerciseCard
+                    ex={ex}
+                    rows={rows[ex.id] ?? []}
+                    units={data.units}
+                    onRows={(r) => setRows((all) => ({ ...all, [ex.id]: r }))}
+                  />
+                </StaggerItem>
               ))}
-            </>
+            </Stagger>
           )}
         </div>
       </IonContent>

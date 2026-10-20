@@ -1,4 +1,4 @@
-import { LazyMotion, MotionConfig, domAnimation, m, type Variants } from 'motion/react';
+import { LazyMotion, MotionConfig, domAnimation, m, type HTMLMotionProps, type Variants } from 'motion/react';
 import type { ReactNode } from 'react';
 
 /**
@@ -32,4 +32,16 @@ export const Stagger: React.FC<{ children: ReactNode; className?: string }> = ({
 /** One block that fades and slides up as part of a Stagger. Add no styling of its own. */
 export const StaggerItem: React.FC<{ children: ReactNode }> = ({ children }) => (
   <m.div variants={item}>{children}</m.div>
+);
+
+const SHEET_SPRING = { type: 'spring', visualDuration: 0.4, bounce: 0 } as const;
+
+/** Dimmed backdrop that fades in. */
+export const ScrimFade: React.FC<HTMLMotionProps<'div'>> = (props) => (
+  <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }} {...props} />
+);
+
+/** A bottom sheet that rises into place. Pass className, role and aria attributes as usual. */
+export const SheetRise: React.FC<HTMLMotionProps<'div'>> = (props) => (
+  <m.div initial={{ opacity: 0, y: 48 }} animate={{ opacity: 1, y: 0 }} transition={SHEET_SPRING} {...props} />
 );

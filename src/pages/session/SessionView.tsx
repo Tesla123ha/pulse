@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Icon, Stepper } from '../../components';
+import { Button, Card, Icon, Stagger, StaggerItem, Stepper } from '../../components';
 import type { SessionData } from '../../data/session';
 import type { SetLogRow, Units, WorkoutExerciseRow } from '../../lib/database.types';
 import { formatInt, plural } from '../../lib/format';
@@ -78,125 +78,137 @@ const SessionView: React.FC<SessionViewProps> = ({ data, now, busy, error, ...ac
   const total = model.order.length;
 
   return (
-    <>
-      <div className="session-top">
-        <ExerciseProgress
-          fractions={fractions}
-          label={
-            current
-              ? `Exercise ${model.currentNumber} of ${total} in progress`
-              : `All ${total} exercises done`
-          }
-        />
-        <div className="session-clock">
-          <span className="t-display-xl" role="timer" aria-label={`Elapsed ${formatClock(elapsedSeconds(session, now))}`}>
-            {formatClock(elapsedSeconds(session, now))}
-          </span>
-          <span className="t-cap">{paused ? 'Paused' : 'Elapsed'}</span>
+    <Stagger className="stack">
+      <StaggerItem>
+        <div className="session-top">
+          <ExerciseProgress
+            fractions={fractions}
+            label={current ? `Exercise ${model.currentNumber} of ${total} in progress` : `All ${total} exercises done`}
+          />
+          <div className="session-clock">
+            <span
+              className="t-display-xl"
+              role="timer"
+              aria-label={`Elapsed ${formatClock(elapsedSeconds(session, now))}`}
+            >
+              {formatClock(elapsedSeconds(session, now))}
+            </span>
+            <span className="t-cap">{paused ? 'Paused' : 'Elapsed'}</span>
+          </div>
         </div>
-      </div>
+      </StaggerItem>
 
       {current ? (
         <>
-          <Card level="raised" className="session-card">
-            <div className="session-card__head">
-              <h2 className="t-title-md">{current.name}</h2>
-              <div className="t-cap">{[...current.muscles, targetText(current)].join(' · ')}</div>
-            </div>
+          <StaggerItem>
+            <Card level="raised" className="session-card">
+              <div className="session-card__head">
+                <h2 className="t-title-md">{current.name}</h2>
+                <div className="t-cap">{[...current.muscles, targetText(current)].join(' · ')}</div>
+              </div>
 
-            {doneSets.map((s) => (
-              <div key={s.id} className="session-set">
-                <span className="t-secondary">Set {s.set_number}</span>
-                <span className="row" style={{ gap: 'var(--space-3)' }}>
-                  <span className="t-strong">{formatSet(s, current, units)}</span>
-                  <span className="session-set__check">
-                    <Icon name="check" size={16} strokeWidth={3} label="Done" />
+              {doneSets.map((s) => (
+                <div key={s.id} className="session-set">
+                  <span className="t-secondary">Set {s.set_number}</span>
+                  <span className="row" style={{ gap: 'var(--space-3)' }}>
+                    <span className="t-strong">{formatSet(s, current, units)}</span>
+                    <span className="session-set__check">
+                      <Icon name="check" size={16} strokeWidth={3} label="Done" />
+                    </span>
                   </span>
-                </span>
-              </div>
-            ))}
+                </div>
+              ))}
 
-            <ActiveSet
-              exercise={current}
-              setNumber={setNumber}
-              lastTime={lastTime ? formatSet(lastTime, current, units) : null}
-              units={units}
-              weight={weight}
-              reps={reps}
-              onWeight={setWeight}
-              onReps={setReps}
-            />
+              <ActiveSet
+                exercise={current}
+                setNumber={setNumber}
+                lastTime={lastTime ? formatSet(lastTime, current, units) : null}
+                units={units}
+                weight={weight}
+                reps={reps}
+                onWeight={setWeight}
+                onReps={setReps}
+              />
 
-            {Array.from({ length: Math.max(0, current.target_sets - setNumber) }, (_, i) => (
-              <div key={i} className="session-set t-muted">
-                <span>Set {setNumber + i + 1}</span>
-                <span>
-                  Target {formatEffort(fromDisplayLoad(weight, current, units), reps, current, units)}
-                </span>
-              </div>
-            ))}
-          </Card>
+              {Array.from({ length: Math.max(0, current.target_sets - setNumber) }, (_, i) => (
+                <div key={i} className="session-set t-muted">
+                  <span>Set {setNumber + i + 1}</span>
+                  <span>Target {formatEffort(fromDisplayLoad(weight, current, units), reps, current, units)}</span>
+                </div>
+              ))}
+            </Card>
+          </StaggerItem>
 
-          <Button
-            variant="primary"
-            size="lg"
-            block
-            disabled={busy || paused}
-            onClick={() => actions.onCompleteSet(fromDisplayLoad(weight, current, units), reps)}
-          >
-            <Icon name="check" />
-            Complete set {setNumber}
-          </Button>
+          <StaggerItem>
+            <Button
+              variant="primary"
+              size="lg"
+              block
+              disabled={busy || paused}
+              onClick={() => actions.onCompleteSet(fromDisplayLoad(weight, current, units), reps)}
+            >
+              <Icon name="check" />
+              Complete set {setNumber}
+            </Button>
+          </StaggerItem>
           {error && (
             <p className="t-cap" role="alert" style={{ color: 'var(--danger)' }}>
               {error}
             </p>
           )}
 
-          <div className="session-next">
-            <span className="t-cap">{model.next ? `Next: ${model.next.name} · ${shortTarget(model.next)}` : 'Last exercise'}</span>
-            <span className="t-cap">{formatInt(current.rest_seconds)} s rest after each set</span>
-          </div>
+          <StaggerItem>
+            <div className="session-next">
+              <span className="t-cap">
+                {model.next ? `Next: ${model.next.name} · ${shortTarget(model.next)}` : 'Last exercise'}
+              </span>
+              <span className="t-cap">{formatInt(current.rest_seconds)} s rest after each set</span>
+            </div>
+          </StaggerItem>
 
-          <div className="session-tools">
-            <Button
-              variant="ghost"
-              className="session-tool"
-              disabled={busy || !model.next}
-              aria-label="Swap: do the next exercise first"
-              onClick={actions.onSwap}
-            >
-              <Icon name="swap" size={20} />
-              Swap
-            </Button>
-            <Button
-              variant="ghost"
-              className="session-tool"
-              disabled={busy}
-              aria-label={`Skip ${current.name}`}
-              onClick={actions.onSkip}
-            >
-              <Icon name="skip" size={20} />
-              Skip
-            </Button>
-            <Button variant="ghost" className="session-tool" disabled={busy} onClick={actions.onNote}>
-              <Icon name="pencil" size={20} />
-              {session.notes ? 'Edit note' : 'Note'}
-            </Button>
-          </div>
+          <StaggerItem>
+            <div className="session-tools">
+              <Button
+                variant="ghost"
+                className="session-tool"
+                disabled={busy || !model.next}
+                aria-label="Swap: do the next exercise first"
+                onClick={actions.onSwap}
+              >
+                <Icon name="swap" size={20} />
+                Swap
+              </Button>
+              <Button
+                variant="ghost"
+                className="session-tool"
+                disabled={busy}
+                aria-label={`Skip ${current.name}`}
+                onClick={actions.onSkip}
+              >
+                <Icon name="skip" size={20} />
+                Skip
+              </Button>
+              <Button variant="ghost" className="session-tool" disabled={busy} onClick={actions.onNote}>
+                <Icon name="pencil" size={20} />
+                {session.notes ? 'Edit note' : 'Note'}
+              </Button>
+            </div>
+          </StaggerItem>
         </>
       ) : (
-        <Card level="raised" hero className="session-card">
-          <h2 className="t-title-md">All exercises done</h2>
-          <p className="t-cap">
-            {plural(model.finishedCount, 'exercise')} · {plural(sets.length, 'set')} logged · {workout.name}
-          </p>
-          <Button variant="primary" size="lg" block routerLink="/finish" style={{ marginTop: 'var(--space-4)' }}>
-            Finish workout
-          </Button>
-        </Card>
+        <StaggerItem>
+          <Card level="raised" hero className="session-card">
+            <h2 className="t-title-md">All exercises done</h2>
+            <p className="t-cap">
+              {plural(model.finishedCount, 'exercise')} · {plural(sets.length, 'set')} logged · {workout.name}
+            </p>
+            <Button variant="primary" size="lg" block routerLink="/finish" style={{ marginTop: 'var(--space-4)' }}>
+              Finish workout
+            </Button>
+          </Card>
+        </StaggerItem>
       )}
-    </>
+    </Stagger>
   );
 };
 

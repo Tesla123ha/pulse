@@ -1,4 +1,4 @@
-import { Button, Card, StatTile } from '../../components';
+import { Button, Card, ScrimFade, SheetRise, StatTile } from '../../components';
 import type { SessionData } from '../../data/session';
 import { formatInt } from '../../lib/format';
 import { buildModel, elapsedSeconds, exerciseCaption, finishMessage, formatClock } from '../../lib/session';
@@ -32,9 +32,9 @@ const FinishView: React.FC<FinishViewProps> = ({ data, now, busy, error, onKeepG
         </Card>
       </div>
 
-      <div className="finish-scrim" aria-hidden="true" />
+      <ScrimFade className="finish-scrim" aria-hidden="true" />
 
-      <div className="finish-sheet" role="dialog" aria-modal="true" aria-labelledby="finish-title">
+      <SheetRise className="finish-sheet" role="dialog" aria-modal="true" aria-labelledby="finish-title">
         <span className="finish-sheet__handle" aria-hidden="true" />
         <div>
           <h1 id="finish-title" className="t-title-md">
@@ -79,7 +79,7 @@ const FinishView: React.FC<FinishViewProps> = ({ data, now, busy, error, onKeepG
             </>
           )}
         </div>
-      </div>
+      </SheetRise>
     </>
   );
 };
