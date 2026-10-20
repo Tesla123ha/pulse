@@ -1,7 +1,10 @@
 import { supabase } from '../lib/supabase';
 import type { AchievementRow, ProfileRow } from '../lib/database.types';
 import { longestStreak } from '../lib/progress';
-import { maybe, must } from './useLoader';
+import { getDb } from '../offline/db';
+import { isOnline } from '../offline/network';
+import { localWrite } from '../offline/outbox';
+import { must } from './useLoader';
 
 export interface Achievement extends AchievementRow {
   earnedAt: string | null;
@@ -15,40 +18,37 @@ export interface ProfileData {
 
 /** Which catalogue achievements the user's history has earned. */
 async function earnedCodes(): Promise<Set<string>> {
-  const [activity, runs, sessions] = await Promise.all([
-    supabase.from('activity_logs').select('logged_at').limit(10000).then(must),
-    supabase.from('activity_logs').select('id').eq('type', 'run').gte('distance_km', 5).limit(1).then(must),
-    supabase
-      .from('workout_sessions')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'completed'),
+  const db = getDb();
+  const [activity, sessions] = await Promise.all([
+    db.activity_logs.toArray(),
+    db.workout_sessions.where('status').equals('completed').count(),
   ]);
-  if (sessions.error) throw new Error(sessions.error.message);
   const codes = new Set<string>();
   if (longestStreak(activity) >= 7) codes.add('streak_7');
-  if (runs.length > 0) codes.add('first_5k');
-  if ((sessions.count ?? 0) >= 100) codes.add('workouts_100');
+  if (activity.some((a) => a.type === 'run' && a.distance_km !== null && Number(a.distance_km) >= 5)) codes.add('first_5k');
+  if (sessions >= 100) codes.add('workouts_100');
   return codes;
 }
 
 /** Loads the profile and achievements, recording any achievement newly earned. */
 export async function loadProfile(userId: string, email: string): Promise<ProfileData> {
+  const db = getDb();
   const [profile, catalogue, mine, earned] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', userId).single().then(must),
-    supabase.from('achievements').select('*').order('sort_order').then(must),
-    supabase.from('user_achievements').select('achievement_id, earned_at').then(must),
+    db.profiles.get(userId),
+    db.achievements.toArray(),
+    db.user_achievements.toArray(),
     earnedCodes(),
   ]);
+  if (!profile) throw new Error('Your profile is not available yet.');
+  catalogue.sort((a, b) => a.sort_order - b.sort_order);
 
   const have = new Map(mine.map((m) => [m.achievement_id, m.earned_at]));
   const fresh = catalogue.filter((a) => earned.has(a.code) && !have.has(a.id));
   if (fresh.length) {
     const now = new Date().toISOString();
-    maybe(
-      await supabase
-        .from('user_achievements')
-        .insert(fresh.map((a) => ({ user_id: userId, achievement_id: a.id, earned_at: now }))),
-    );
+    await localWrite(db, ['user_achievements'], async (w) => {
+      for (const a of fresh) await w.upsert('user_achievements', { user_id: userId, achievement_id: a.id, earned_at: now });
+    });
     for (const a of fresh) have.set(a.id, now);
   }
 
@@ -67,11 +67,16 @@ export type ProfilePatch = Partial<
 >;
 
 export async function updateProfile(userId: string, patch: ProfilePatch): Promise<ProfileRow> {
-  return must(await supabase.from('profiles').update(patch).eq('id', userId).select('*').single());
+  const db = getDb();
+  await localWrite(db, ['profiles'], (w) => w.update('profiles', userId, patch));
+  const row = await db.profiles.get(userId);
+  if (!row) throw new Error('Your profile is not available yet.');
+  return row;
 }
 
 /** Everything stored for this account, as one JSON document. */
 export async function exportMyData(): Promise<string> {
+  if (!isOnline()) throw new Error('Export needs a connection.');
   const tables = [
     'profiles',
     'workouts',

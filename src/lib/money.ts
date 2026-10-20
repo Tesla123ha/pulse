@@ -1,6 +1,6 @@
 // Money formatting and parsing. Amounts are whole centavos everywhere.
 import type { IconName } from '../components';
-import type { AccountKind, MoneyRecordType } from './database.types';
+import type { AccountKind, MoneyAccountRow, MoneyRecordRow, MoneyRecordType } from './database.types';
 
 const peso = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
@@ -46,3 +46,42 @@ export const accountKind = (kind: AccountKind) => ACCOUNT_KINDS.find((k) => k.ki
 const CATEGORY_ICONS: IconName[] = ['food', 'car', 'receipt', 'bag', 'heart', 'ticket', 'home', 'dots', 'briefcase', 'store', 'gift'];
 export const categoryIcon = (name: string): IconName =>
   (CATEGORY_ICONS as string[]).includes(name) ? (name as IconName) : 'dots';
+
+type BalanceAccount = Pick<MoneyAccountRow, 'id' | 'opening_balance_centavos'>;
+type BalanceRecord = Pick<MoneyRecordRow, 'type' | 'amount_centavos' | 'account_id' | 'to_account_id'>;
+
+/**
+ * Balance per account id, in whole centavos: the opening balance plus income,
+ * minus expenses, minus transfers out, plus transfers in. This is the
+ * money_account_balances view (supabase/migrations/0005_money.sql) in JS.
+ */
+export function accountBalances(accounts: BalanceAccount[], records: BalanceRecord[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const a of accounts) out.set(a.id, Number(a.opening_balance_centavos));
+  const add = (id: string | null, delta: number) => {
+    if (id !== null && out.has(id)) out.set(id, (out.get(id) as number) + delta);
+  };
+  for (const r of records) {
+    const amount = Number(r.amount_centavos);
+    if (r.type === 'income') add(r.account_id, amount);
+    else if (r.type === 'expense') add(r.account_id, -amount);
+    else {
+      add(r.account_id, -amount);
+      add(r.to_account_id, amount);
+    }
+  }
+  return out;
+}
+
+/** Expense and income totals for records at or after `since` (transfers excluded). */
+export function monthTotals(records: Pick<MoneyRecordRow, 'type' | 'amount_centavos' | 'occurred_at'>[], since: Date) {
+  const from = since.getTime();
+  let spent = 0;
+  let income = 0;
+  for (const r of records) {
+    if (new Date(r.occurred_at).getTime() < from) continue;
+    if (r.type === 'expense') spent += Number(r.amount_centavos);
+    else if (r.type === 'income') income += Number(r.amount_centavos);
+  }
+  return { spent, income };
+}

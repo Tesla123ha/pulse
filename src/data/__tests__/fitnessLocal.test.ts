@@ -7,7 +7,7 @@ vi.mock('@capacitor/network', () => ({
   Network: { getStatus: () => Promise.resolve({ connected: true }), addListener: () => Promise.resolve({ remove() {} }) },
 }));
 
-import { closeUserDb, openUserDb } from '../../offline/db';
+import { closeUserDb, deleteUserDb, openUserDb } from '../../offline/db';
 import { deleteActivity, loadProgress } from '../progress';
 import { endSession, loadOrStartSession, logSet } from '../session';
 import { savePastWorkout } from '../pastWorkout';
@@ -20,6 +20,8 @@ const ex = {
 
 beforeEach(async () => {
   closeUserDb();
+  // Dexie keeps the IndexedDB it saw at import, so wipe the named database rather than swapping the factory.
+  await deleteUserDb(U);
   (globalThis as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
   const db = await openUserDb(U);
   await db.profiles.put({ id: U, units: 'metric', active_goal_min: 30 } as never);
