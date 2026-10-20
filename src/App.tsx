@@ -32,7 +32,7 @@ import Workouts from './pages/Workouts';
 import Progress from './pages/Progress';
 import Profile from './pages/Profile';
 import Money from './pages/Money';
-import { MotionProvider, SyncStatus, renderBottomNav } from './components';
+import { MotionProvider, Splash, SyncStatus, renderBottomNav } from './components';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
@@ -99,7 +99,7 @@ const DbGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           font: 'var(--type-body)',
         }}
       >
-        Loading
+        <span className="visually-hidden">Loading</span>
       </div>
     );
   }
@@ -175,6 +175,7 @@ const App: React.FC = () => (
     >
       <MotionProvider>
         <AuthProvider>
+          <Splash />
           <IonReactRouter>
             <Routes />
           </IonReactRouter>

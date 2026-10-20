@@ -943,3 +943,52 @@ button.pl-sync__pill:focus-visible {
     max-width: 100%;
   }
 }
+
+/* Splash: covers the app while the stored session is read; never blocks startup */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0c0b;
+  padding: var(--ion-safe-area-top, 0px) var(--ion-safe-area-right, 0px) var(--ion-safe-area-bottom, 0px)
+    var(--ion-safe-area-left, 0px);
+}
+.splash__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Slightly above the vertical midpoint */
+  transform: translateY(-4vh);
+}
+.splash__mark {
+  width: clamp(120px, 42vw, 180px);
+  height: auto;
+}
+.splash__text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+.splash__word {
+  font: 600 32px/36px var(--font-display);
+  letter-spacing: 0.01em;
+  color: #f5f7f2;
+}
+.splash__tag {
+  font: 500 11px/16px var(--font-sans);
+  letter-spacing: 0.18em;
+  color: #858b83;
+}
+@media (max-height: 420px) {
+  .splash__text {
+    margin-top: var(--space-3);
+  }
+  .splash__tag {
+    display: none;
+  }
+}
