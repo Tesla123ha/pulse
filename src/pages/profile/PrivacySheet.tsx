@@ -17,7 +17,7 @@ const PrivacySheet: React.FC<PrivacySheetProps> = ({ isOpen, onDismiss, onExport
         Privacy and data
       </h2>
       <p className="t-secondary">
-        Pulse stores your profile, workouts, sets, activities and records in your account. Only you can read them.
+        Pulse stores your profile, workouts, sets, activities, records, money accounts and transactions in your account. Only you can read them.
       </p>
       {note && (
         <p className="t-cap" role="status">

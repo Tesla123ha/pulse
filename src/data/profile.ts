@@ -82,6 +82,9 @@ export async function exportMyData(): Promise<string> {
     'activity_logs',
     'personal_records',
     'user_achievements',
+    'money_accounts',
+    'money_records',
+    'money_categories',
   ] as const;
   const out: Record<string, unknown> = { exported_at: new Date().toISOString() };
   for (const t of tables) {

@@ -31,6 +31,7 @@ import LogWorkout from './pages/LogWorkout';
 import Workouts from './pages/Workouts';
 import Progress from './pages/Progress';
 import Profile from './pages/Profile';
+import Money from './pages/Money';
 import { renderBottomNav } from './components';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -38,7 +39,7 @@ import { supabase } from './lib/supabase';
 
 setupIonicReact({ mode: 'ios' });
 
-/** The four tab destinations with the bottom navigation. */
+/** The five tab destinations with the bottom navigation. */
 const Tabs: React.FC = () => {
   const { pathname } = useLocation();
   return (
@@ -49,6 +50,9 @@ const Tabs: React.FC = () => {
         </Route>
         <Route exact path="/workouts">
           <Workouts />
+        </Route>
+        <Route exact path="/money">
+          <Money />
         </Route>
         <Route exact path="/progress">
           <Progress />
@@ -118,7 +122,7 @@ const SignedIn: React.FC = () => (
     <Route exact path="/">
       <Redirect to="/home" />
     </Route>
-    <Route path={['/home', '/workouts', '/progress', '/profile']}>
+    <Route path={['/home', '/workouts', '/money', '/progress', '/profile']}>
       <Tabs />
     </Route>
     <Route render={() => <Redirect to="/home" />} />

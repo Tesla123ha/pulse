@@ -11,12 +11,13 @@ export interface NavTab {
 export const NAV_TABS: NavTab[] = [
   { tab: 'home', href: '/home', label: 'Home', icon: 'home' },
   { tab: 'workouts', href: '/workouts', label: 'Workouts', icon: 'workouts' },
+  { tab: 'money', href: '/money', label: 'Money', icon: 'wallet' },
   { tab: 'progress', href: '/progress', label: 'Progress', icon: 'progress' },
   { tab: 'profile', href: '/profile', label: 'Profile', icon: 'profile' },
 ];
 
 /**
- * Builds the four-destination tab bar. Returned as an element (not a component)
+ * Builds the five-destination tab bar. Returned as an element (not a component)
  * because IonTabs requires IonTabBar as its direct child.
  */
 export function renderBottomNav(currentPath: string) {

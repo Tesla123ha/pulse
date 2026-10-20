@@ -1,0 +1,89 @@
+.money-hero,
+.money-empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.money-empty ion-button,
+.money-hero ion-button {
+  margin-top: var(--space-2);
+}
+.money-total {
+  overflow-wrap: anywhere;
+}
+.money-month {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+.money-month__value {
+  margin-top: var(--space-1);
+  font: 700 17px/24px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+.money-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.money-day {
+  gap: var(--space-2);
+}
+.money-amount {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+ion-button.pl-btn.money-link {
+  --padding-start: var(--space-3);
+  --padding-end: 0;
+  height: 44px;
+  min-height: 44px;
+  margin: -10px 0;
+}
+
+/* Sheets */
+.money-amount-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 64px;
+  padding: 0 var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+.money-amount-field:focus-within {
+  box-shadow: var(--focus-ring);
+}
+.money-amount-field span {
+  font: var(--type-numeric-lg);
+  color: var(--text-secondary);
+}
+.money-amount-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: var(--type-numeric-lg);
+  font-variant-numeric: tabular-nums;
+}
+.money-amount-field input:focus {
+  outline: none;
+}
+.money-date {
+  min-height: var(--size-tap);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font: var(--type-body);
+  color-scheme: dark;
+}
+.money-date:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}

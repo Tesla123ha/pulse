@@ -159,6 +159,47 @@ export type UserAchievementRow = {
   earned_at: string;
 };
 
+export type AccountKind = 'cash' | 'bank' | 'ewallet' | 'card' | 'savings' | 'other';
+export type MoneyRecordType = 'expense' | 'income' | 'transfer';
+
+export type MoneyAccountRow = {
+  id: string;
+  user_id: string;
+  name: string;
+  kind: AccountKind;
+  currency: string;
+  opening_balance_centavos: number;
+  sort_order: number;
+  created_at: string;
+};
+
+export type MoneyCategoryRow = {
+  id: string;
+  user_id: string | null;
+  kind: 'expense' | 'income';
+  name: string;
+  icon: string;
+  sort_order: number;
+};
+
+export type MoneyRecordRow = {
+  id: string;
+  user_id: string;
+  type: MoneyRecordType;
+  amount_centavos: number;
+  account_id: string;
+  to_account_id: string | null;
+  category_id: string | null;
+  note: string | null;
+  occurred_at: string;
+  created_at: string;
+};
+
+export type MoneyBalanceRow = {
+  account_id: string;
+  balance_centavos: number;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -198,13 +239,18 @@ export type Database = {
       >;
       personal_records: Table<PersonalRecordRow, 'user_id' | 'name' | 'value' | 'unit'>;
       achievements: Table<AchievementRow, 'code' | 'name' | 'description' | 'icon'>;
+      money_accounts: Table<MoneyAccountRow, 'user_id' | 'name'>;
+      money_categories: Table<MoneyCategoryRow, 'kind' | 'name'>;
+      money_records: Table<MoneyRecordRow, 'user_id' | 'type' | 'amount_centavos' | 'account_id'>;
       user_achievements: Table<
         UserAchievementRow,
         'user_id' | 'achievement_id',
         [Rel<'user_achievements_achievement_id_fkey', 'achievement_id', 'achievements'>]
       >;
     };
-    Views: { [_ in never]: never };
+    Views: {
+      money_account_balances: { Row: MoneyBalanceRow; Relationships: [] };
+    };
     Functions: { [_ in never]: never };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

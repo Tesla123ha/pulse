@@ -597,6 +597,10 @@ ion-modal.pl-sheet {
   max-height: 88vh;
   overflow-y: auto;
 }
+/* Scroll instead of squashing children when the sheet is taller than the screen */
+.pl-sheet__body > * {
+  flex-shrink: 0;
+}
 
 /* ---------- Text field ---------- */
 .field {
@@ -619,6 +623,12 @@ ion-modal.pl-sheet {
 }
 .field__control:focus-within {
   box-shadow: var(--focus-ring);
+}
+/* The rounded control shows focus; the input inside must not draw its own square ring */
+.field__control input:focus-visible,
+.field__control textarea:focus-visible,
+.money-amount-field input:focus-visible {
+  box-shadow: none;
 }
 .field__control ion-input {
   --color: var(--text);
@@ -705,4 +715,11 @@ ion-modal.pl-sheet {
   font: var(--type-caption);
   color: var(--text-secondary);
   min-width: 22px;
+}
+
+/* Chips that wrap onto several lines (choices in sheets) */
+.pl-chip-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
