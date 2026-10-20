@@ -3,20 +3,23 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUserId } from '../auth/AuthProvider';
 import { Button, Card, ChipRow, Icon, NumberField, Stagger, StaggerItem, Stepper } from '../components';
+import { setLoadPref } from '../data/loadPrefs';
 import { loadPastWorkout, savePastWorkout, type PastSet, type PastWorkoutData } from '../data/pastWorkout';
 import { errorMessage, useLoader } from '../data/useLoader';
 import type { WorkoutWithExercises } from '../data/workouts';
 import { dateKey, formatHeaderDate, fromDateKey } from '../lib/dates';
-import type { SetLogRow, Units, WorkoutExerciseRow } from '../lib/database.types';
+import type { SetLogRow, WorkoutExerciseRow } from '../lib/database.types';
 import { plural } from '../lib/format';
-import { displayToStored, fromDisplayLoad, loadUnitLabel, storedLoad, toDisplayLoad } from '../lib/load';
+import { choiceText, displayToStored, resolveChoice, type LoadChoice } from '../lib/load';
+import { seedLoad, switchedLoad, weightIrrelevant } from '../lib/loadPrefill';
 import { shortTarget } from '../lib/session';
+import UnitToggle from './session/UnitToggle';
 import './Session.css';
 import './LogWorkout.css';
 
 interface SetRow {
   done: boolean;
-  /** display units: kg/lb, or PL */
+  /** in the exercise's chosen unit: kg, lb or PL */
   load: number;
   reps: number;
 }
@@ -29,18 +32,51 @@ function lastSessionSets(history: SetLogRow[], exerciseId: string): SetLogRow[] 
   return mine.filter((h) => h.session_id === session).sort((a, b) => a.set_number - b.set_number);
 }
 
-function initialRows(ex: WorkoutExerciseRow, history: SetLogRow[], units: Units): SetRow[] {
+/** One exercise: its unit and its sets. */
+interface ExerciseState {
+  choice: LoadChoice;
+  rows: SetRow[];
+}
+
+/** Sets to start set `i` from, most preferred first: same set last time, last set last time, then older. */
+function candidatesFor(history: SetLogRow[], exerciseId: string, i: number): SetLogRow[] {
+  const last = lastSessionSets(history, exerciseId);
+  const prev = last.find((s) => s.set_number === i + 1) ?? last[last.length - 1];
+  return [...(prev ? [prev] : []), ...history.filter((h) => h.exercise_id === exerciseId)];
+}
+
+function initialRows(ex: WorkoutExerciseRow, history: SetLogRow[], choice: LoadChoice): SetRow[] {
   const last = lastSessionSets(history, ex.id);
-  const roundLoad = (v: number) => Math.round(v * 100) / 100;
   return Array.from({ length: ex.target_sets }, (_, i) => {
     const prev = last.find((s) => s.set_number === i + 1) ?? last[last.length - 1];
-    const stored = prev ? storedLoad(prev, ex) : Number(ex.start_load ?? 0);
     return {
       done: true,
-      load: roundLoad(toDisplayLoad(stored, ex, units)),
+      load: seedLoad(ex, choice, candidatesFor(history, ex.id, i)),
       reps: prev ? prev.reps : ex.target_type === 'max' ? 10 : ex.rep_min,
     };
   });
+}
+
+function initialState(ex: WorkoutExerciseRow, data: PastWorkoutData): ExerciseState {
+  const latest = data.history.find((h) => h.exercise_id === ex.id);
+  const choice = resolveChoice(ex, data.units, data.prefs[ex.id], latest);
+  return { choice, rows: initialRows(ex, data.history, choice) };
+}
+
+/** Another unit: kg and lb convert each row, PL and mass start each row over. Done and reps stay. */
+function switchUnit(
+  ex: WorkoutExerciseRow,
+  state: ExerciseState,
+  next: LoadChoice,
+  history: SetLogRow[],
+): ExerciseState {
+  return {
+    choice: next,
+    rows: state.rows.map((r, i) => ({
+      ...r,
+      load: switchedLoad(r.load, state.choice, next, seedLoad(ex, next, candidatesFor(history, ex.id, i))),
+    })),
+  };
 }
 
 /** Checkbox-style toggle for one set: filled with text when included (filled-selection rule). */
@@ -64,10 +100,12 @@ const SetCheck: React.FC<{ checked: boolean; label: string; onToggle: () => void
 const ExerciseCard: React.FC<{
   ex: WorkoutExerciseRow;
   rows: SetRow[];
-  units: Units;
+  choice: LoadChoice;
+  showUnit: boolean;
+  onChoice: (c: LoadChoice) => void;
   onRows: (rows: SetRow[]) => void;
-}> = ({ ex, rows, units, onRows }) => {
-  const unit = loadUnitLabel(ex, units);
+}> = ({ ex, rows, choice, showUnit, onChoice, onRows }) => {
+  const unit = choiceText(choice);
   const repsUnit = ex.target_type === 'seconds' ? 's' : 'reps';
   const update = (i: number, patch: Partial<SetRow>) => onRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   return (
@@ -76,6 +114,7 @@ const ExerciseCard: React.FC<{
         <h2 className="t-title-sm">{ex.name}</h2>
         <p className="t-cap">{[...ex.muscles, shortTarget(ex)].join(' · ')}</p>
       </div>
+      {showUnit && <UnitToggle exercise={ex.name} value={choice} onChange={onChoice} />}
       <ul className="logex__sets">
         {rows.map((r, i) => (
           <li key={i} className={`logex__set${r.done ? '' : ' logex__set--off'}`}>
@@ -87,7 +126,7 @@ const ExerciseCard: React.FC<{
             <span className="logex__label">Set {i + 1}</span>
             <span className="logex__fields">
               <NumberField
-                label={`${ex.name} set ${i + 1} ${ex.load_unit === 'stack' ? 'stack level' : 'weight'}`}
+                label={`${ex.name} set ${i + 1} ${choice === 'pl' ? 'stack level' : 'weight'}`}
                 value={r.load}
                 suffix={unit}
                 max={1000}
@@ -144,7 +183,7 @@ const LogWorkout: React.FC = () => {
   const [workoutName, setWorkoutName] = useState<string | null>(null);
   const workout = ordered.find((w) => w.name === workoutName) ?? ordered[0] ?? null;
   const [duration, setDuration] = useState(60);
-  const [rows, setRows] = useState<Record<string, SetRow[]>>({});
+  const [state, setState] = useState<Record<string, ExerciseState>>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -152,11 +191,11 @@ const LogWorkout: React.FC = () => {
   useEffect(() => {
     if (!data || !workout) return;
     setDuration(workout.duration_min);
-    setRows(Object.fromEntries(workout.exercises.map((ex) => [ex.id, initialRows(ex, data.history, data.units)])));
+    setState(Object.fromEntries(workout.exercises.map((ex) => [ex.id, initialState(ex, data)])));
     setSaveError(null);
   }, [data, workout]);
 
-  const ticked = Object.values(rows).reduce((n, rs) => n + rs.filter((r) => r.done).length, 0);
+  const ticked = Object.values(state).reduce((n, e) => n + e.rows.filter((r) => r.done).length, 0);
   const back = () => (router.canGoBack() ? router.goBack() : router.push('/progress', 'back', 'replace'));
 
   const save = async () => {
@@ -165,12 +204,12 @@ const LogWorkout: React.FC = () => {
     setSaveError(null);
     try {
       const sets: PastSet[] = workout.exercises.flatMap((ex) =>
-        (rows[ex.id] ?? [])
+        (state[ex.id]?.rows ?? [])
           .filter((r) => r.done)
           .map((r, i) => ({
             exerciseId: ex.id,
             setNumber: i + 1,
-            stored: displayToStored(fromDisplayLoad(r.load, ex, data.units), ex.load_unit === 'stack' ? 'pl' : 'kg'),
+            stored: displayToStored(r.load, state[ex.id].choice),
             reps: r.reps,
           })),
       );
@@ -232,16 +271,27 @@ const LogWorkout: React.FC = () => {
               <StaggerItem>
                 <p className="t-cap">Sets start from what you lifted before this day. Untick any you did not do.</p>
               </StaggerItem>
-              {workout.exercises.map((ex) => (
-                <StaggerItem key={ex.id}>
-                  <ExerciseCard
-                    ex={ex}
-                    rows={rows[ex.id] ?? []}
-                    units={data.units}
-                    onRows={(r) => setRows((all) => ({ ...all, [ex.id]: r }))}
-                  />
-                </StaggerItem>
-              ))}
+              {workout.exercises.map((ex) => {
+                const ours = state[ex.id];
+                if (!ours) return null;
+                const mine = data.history.filter((h) => h.exercise_id === ex.id);
+                return (
+                  <StaggerItem key={ex.id}>
+                    <ExerciseCard
+                      ex={ex}
+                      rows={ours.rows}
+                      choice={ours.choice}
+                      showUnit={!weightIrrelevant(ex, mine)}
+                      onChoice={(c) => {
+                        if (c === ours.choice) return;
+                        setState((all) => ({ ...all, [ex.id]: switchUnit(ex, all[ex.id], c, data.history) }));
+                        void setLoadPref(ex.id, c).catch(() => undefined);
+                      }}
+                      onRows={(r) => setState((all) => ({ ...all, [ex.id]: { ...all[ex.id], rows: r } }))}
+                    />
+                  </StaggerItem>
+                );
+              })}
             </Stagger>
           )}
         </div>
