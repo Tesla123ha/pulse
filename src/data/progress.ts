@@ -37,3 +37,24 @@ export async function loadProgress(userId: string): Promise<ProgressData> {
     records,
   };
 }
+
+/**
+ * Deletes one logged activity. For a gym workout this also deletes its
+ * session and logged sets, and un-ticks the plan slot it completed.
+ */
+export async function deleteActivity(a: Pick<ProgressActivity, 'id' | 'session_id'>): Promise<void> {
+  if (a.session_id) {
+    must(
+      await supabase
+        .from('plan_workouts')
+        .update({ completed_session_id: null, completed_at: null })
+        .eq('completed_session_id', a.session_id)
+        .select('id'),
+    );
+  }
+  must(await supabase.from('activity_logs').delete().eq('id', a.id).select('id'));
+  if (a.session_id) {
+    // Set logs go with the session (on delete cascade).
+    must(await supabase.from('workout_sessions').delete().eq('id', a.session_id).select('id'));
+  }
+}

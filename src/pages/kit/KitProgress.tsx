@@ -4,6 +4,7 @@ import type { ProgressActivity, ProgressData } from '../../data/progress';
 import type { ActivityType, PersonalRecordRow } from '../../lib/database.types';
 import { addDays, dateKey, startOfDay } from '../../lib/dates';
 import type { Range } from '../../lib/progress';
+import DeleteActivitySheet from '../progress/DeleteActivitySheet';
 import ProgressView from '../progress/ProgressView';
 import '../Progress.css';
 
@@ -65,13 +66,23 @@ const data: ProgressData = {
 
 const KitProgress: React.FC = () => {
   const [range, setRange] = useState<Range>('Week');
+  const [kit, setKit] = useState(data);
+  const [deleting, setDeleting] = useState<ProgressActivity | null>(null);
   return (
     <IonPage>
       <IonContent>
         <div className="screen">
           <h1 className="t-title-lg">Progress</h1>
-          <ProgressView data={data} range={range} onRange={setRange} now={now} />
+          <ProgressView data={kit} range={range} onRange={setRange} now={now} onDelete={setDeleting} />
         </div>
+        <DeleteActivitySheet
+          activity={deleting}
+          onDismiss={() => setDeleting(null)}
+          onConfirm={async (a) => {
+            setKit((d) => ({ ...d, activity: d.activity.filter((x) => x.id !== a.id) }));
+            setDeleting(null);
+          }}
+        />
       </IonContent>
     </IonPage>
   );

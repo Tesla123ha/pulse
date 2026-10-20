@@ -5,7 +5,7 @@ import { activityMeta } from '../../lib/activity';
 import { addDays, dateKey, startOfDay } from '../../lib/dates';
 import type { Units } from '../../lib/database.types';
 import { formatInt } from '../../lib/format';
-import { activityDetail } from '../../lib/progress';
+import { activityDetail, activityTitle } from '../../lib/progress';
 
 const MONTH_TITLE = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 const DAY_TITLE = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
@@ -13,11 +13,12 @@ const DAY_LABEL = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeri
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 /** Month grid of training days; tap a day to list what was logged. */
-const TrainingCalendar: React.FC<{ activity: ProgressActivity[]; units: Units; now: Date }> = ({
-  activity,
-  units,
-  now,
-}) => {
+const TrainingCalendar: React.FC<{
+  activity: ProgressActivity[];
+  units: Units;
+  now: Date;
+  onDelete: (a: ProgressActivity) => void;
+}> = ({ activity, units, now, onDelete }) => {
   const today = startOfDay(now);
   const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [selected, setSelected] = useState(() => dateKey(today));
@@ -105,14 +106,25 @@ const TrainingCalendar: React.FC<{ activity: ProgressActivity[]; units: Units; n
           <p className="t-cap t-muted">No activity logged.</p>
         ) : (
           dayItems.map((a) => {
-            const meta = activityMeta(a.type);
             return (
               <ListRow
                 key={a.id}
-                icon={meta.icon}
-                title={a.workoutName ?? meta.noun.charAt(0).toUpperCase() + meta.noun.slice(1)}
+                icon={activityMeta(a.type).icon}
+                title={activityTitle(a)}
                 caption={activityDetail(a, units)}
-                end={<span className="pl-listrow__end">{formatInt(a.kcal)} kcal</span>}
+                end={
+                  <span className="pl-listrow__end">
+                    {formatInt(a.kcal)} kcal
+                    <Button
+                      variant="stop"
+                      iconOnly
+                      aria-label={`Delete ${activityTitle(a)} on ${DAY_LABEL.format(selectedDate)}`}
+                      onClick={() => onDelete(a)}
+                    >
+                      <Icon name="trash" />
+                    </Button>
+                  </span>
+                }
               />
             );
           })

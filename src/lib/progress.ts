@@ -203,3 +203,9 @@ export function activityDetail(
 /** Activities in [start, end). */
 export const between = <T extends Pick<ActivityLogRow, 'logged_at'>>(rows: T[], start: Date, end: Date) =>
   rows.filter((a) => inRange(a, start, end));
+
+/** Title for an activity in lists and confirmations: the workout name, or "Run", "Pickleball". */
+export function activityTitle(a: Pick<ActivityLogRow, 'type'> & { workoutName?: string | null }): string {
+  const noun = activityMeta(a.type).noun;
+  return a.workoutName ?? noun.charAt(0).toUpperCase() + noun.slice(1);
+}

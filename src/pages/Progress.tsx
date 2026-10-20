@@ -2,9 +2,10 @@ import { IonContent, IonPage, IonRefresher, IonRefresherContent } from '@ionic/r
 import { useCallback, useState } from 'react';
 import { useUserId } from '../auth/AuthProvider';
 import { Button, Card } from '../components';
-import { loadProgress } from '../data/progress';
+import { deleteActivity, loadProgress, type ProgressActivity } from '../data/progress';
 import { useLoader } from '../data/useLoader';
 import type { Range } from '../lib/progress';
+import DeleteActivitySheet from './progress/DeleteActivitySheet';
 import ProgressView from './progress/ProgressView';
 import './Progress.css';
 
@@ -13,6 +14,7 @@ const Progress: React.FC = () => {
   const load = useCallback(() => loadProgress(userId), [userId]);
   const { data, error, loading, reload } = useLoader(load);
   const [range, setRange] = useState<Range>('Week');
+  const [deleting, setDeleting] = useState<ProgressActivity | null>(null);
 
   return (
     <IonPage>
@@ -36,8 +38,19 @@ const Progress: React.FC = () => {
               </Button>
             </Card>
           )}
-          {data && <ProgressView data={data} range={range} onRange={setRange} now={new Date()} />}
+          {data && (
+            <ProgressView data={data} range={range} onRange={setRange} now={new Date()} onDelete={setDeleting} />
+          )}
         </div>
+        <DeleteActivitySheet
+          activity={deleting}
+          onDismiss={() => setDeleting(null)}
+          onConfirm={async (a) => {
+            await deleteActivity(a);
+            setDeleting(null);
+            await reload();
+          }}
+        />
       </IonContent>
     </IonPage>
   );
