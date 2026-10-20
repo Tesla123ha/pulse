@@ -4,8 +4,20 @@
     {
       "name": "pulse-dev",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-lc", ". ~/.nvm/nvm.sh && npm run dev -- --port 5173 --strictPort"],
+      "runtimeArgs": [
+        "-lc",
+        ". ~/.nvm/nvm.sh && npm run dev -- --port 5173 --strictPort"
+      ],
       "port": 5173
+    },
+    {
+      "name": "pulse-preview",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-lc",
+        ". ~/.nvm/nvm.sh && npm run preview -- --port 4173 --strictPort"
+      ],
+      "port": 4173
     }
   ]
 }

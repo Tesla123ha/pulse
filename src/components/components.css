@@ -625,3 +625,34 @@ ion-modal.pl-sheet {
   --highlight-color: transparent;
   font: var(--type-body);
 }
+
+/* ---------- Error screen (plain elements: Ionic may be what failed) ---------- */
+.crash-message {
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font: 500 13px/18px ui-monospace, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.crash-button {
+  min-height: var(--size-tap);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text);
+  font: var(--type-body-strong);
+  cursor: pointer;
+}
+.crash-button--primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.crash-button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}

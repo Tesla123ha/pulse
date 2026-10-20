@@ -32,6 +32,8 @@ import Progress from './pages/Progress';
 import Profile from './pages/Profile';
 import { renderBottomNav } from './components';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
+import ErrorBoundary from './components/ErrorBoundary';
+import { supabase } from './lib/supabase';
 
 setupIonicReact({ mode: 'ios' });
 
@@ -76,6 +78,26 @@ const Routes: React.FC = () => {
   return session ? <SignedIn /> : <SignedOut />;
 };
 
+/**
+ * Dev-only component previews. Built as a plain array so production gets an
+ * empty list: IonRouterOutlet crashes on false or null children.
+ */
+const DEV_ROUTES = import.meta.env.DEV
+  ? [
+      { path: '/kit', page: <Kit /> },
+      { path: '/kit/home', page: <KitHome /> },
+      { path: '/kit/session', page: <KitSession /> },
+      { path: '/kit/finish', page: <KitFinish /> },
+      { path: '/kit/workouts', page: <KitWorkouts /> },
+      { path: '/kit/progress', page: <KitProgress /> },
+      { path: '/kit/profile', page: <KitProfile /> },
+    ].map(({ path, page }) => (
+      <Route key={path} exact path={path}>
+        {page}
+      </Route>
+    ))
+  : [];
+
 const SignedIn: React.FC = () => (
   <IonRouterOutlet>
     <Route exact path="/auth">
@@ -88,41 +110,7 @@ const SignedIn: React.FC = () => (
     <Route exact path="/finish">
       <Finish />
     </Route>
-    {import.meta.env.DEV && (
-      <Route exact path="/kit">
-        <Kit />
-      </Route>
-    )}
-    {import.meta.env.DEV && (
-      <Route exact path="/kit/home">
-        <KitHome />
-      </Route>
-    )}
-    {import.meta.env.DEV && (
-      <Route exact path="/kit/session">
-        <KitSession />
-      </Route>
-    )}
-    {import.meta.env.DEV && (
-      <Route exact path="/kit/finish">
-        <KitFinish />
-      </Route>
-    )}
-    {import.meta.env.DEV && (
-      <Route exact path="/kit/workouts">
-        <KitWorkouts />
-      </Route>
-    )}
-    {import.meta.env.DEV && (
-      <Route exact path="/kit/progress">
-        <KitProgress />
-      </Route>
-    )}
-    {import.meta.env.DEV && (
-      <Route exact path="/kit/profile">
-        <KitProfile />
-      </Route>
-    )}
+    {DEV_ROUTES}
     <Route exact path="/">
       <Redirect to="/home" />
     </Route>
@@ -135,11 +123,17 @@ const SignedIn: React.FC = () => (
 
 const App: React.FC = () => (
   <IonApp>
-    <AuthProvider>
-      <IonReactRouter>
-        <Routes />
-      </IonReactRouter>
-    </AuthProvider>
+    <ErrorBoundary
+      onSignOut={() => {
+        void supabase.auth.signOut().finally(() => window.location.assign('/auth'));
+      }}
+    >
+      <AuthProvider>
+        <IonReactRouter>
+          <Routes />
+        </IonReactRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   </IonApp>
 );
 
