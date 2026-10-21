@@ -61,3 +61,15 @@ ion-button.pl-btn.quicklog__tile {
   line-height: 16px;
   color: var(--text-secondary);
 }
+
+.home-goal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+.home-last {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}

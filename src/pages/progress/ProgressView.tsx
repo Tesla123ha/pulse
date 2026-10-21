@@ -18,6 +18,7 @@ import {
 } from '../../lib/progress';
 import { distanceUnit, kmToDisplay } from '../../lib/units';
 import DayList from './DayList';
+import TrendSection from './TrendSection';
 import MonthHeatmap from './MonthHeatmap';
 
 export interface ProgressViewProps {
@@ -203,6 +204,10 @@ const ProgressView: React.FC<ProgressViewProps> = ({ data, range, onRange, now, 
                 </div>
               )}
             </section>
+          </StaggerItem>
+
+          <StaggerItem>
+            <TrendSection trends={data.trends} />
           </StaggerItem>
 
           {!isMonth && (

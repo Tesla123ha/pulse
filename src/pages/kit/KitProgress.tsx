@@ -65,6 +65,32 @@ const data: ProgressData = {
     rec('r3', 'Shrugs', 25, 'kg', 40),
     rec('r4', 'Shrugs', 27.5, 'kg', 12),
   ],
+  trends: empty
+    ? []
+    : [
+        {
+          name: 'Shrugs',
+          kind: 'mass',
+          choice: 'kg',
+          lastLoggedAt: addDays(now, -2).toISOString(),
+          points: [25, 25, 27.5, 27.5, 30, 30, 32.5].map((value, i) => ({
+            sessionId: `t${i}`,
+            date: addDays(now, -(2 + (6 - i) * 7)).toISOString(),
+            value,
+            reps: 10 - (i % 3),
+          })),
+        },
+        {
+          name: 'Incline DB Bench Press',
+          kind: 'pl',
+          choice: 'pl',
+          lastLoggedAt: addDays(now, -5).toISOString(),
+          points: [
+            { sessionId: 'p1', date: addDays(now, -19).toISOString(), value: 12, reps: 10 },
+            { sessionId: 'p2', date: addDays(now, -5).toISOString(), value: 13, reps: 8 },
+          ],
+        },
+      ],
 };
 
 const KitProgress: React.FC = () => {

@@ -1,8 +1,10 @@
-import { Button, Card, Icon, ProgressRing, Stagger, StaggerItem, WeekStrip } from '../../components';
+import { Button, Card, Icon, ProgressBar, ProgressRing, Stagger, StaggerItem, WeekStrip } from '../../components';
 import type { HomeData } from '../../data/home';
 import { QUICK_LOG, lastEntryText, type ActivityMeta } from '../../lib/activity';
 import { formatHeaderDate } from '../../lib/dates';
 import { formatInt, plural } from '../../lib/format';
+import { relativeDay } from '../../lib/history';
+import { formatLoadTotal } from '../../lib/units';
 
 export const HomeHeader: React.FC<{ today: Date }> = ({ today }) => (
   <header className="home-hdr">
@@ -43,6 +45,19 @@ const HomeView: React.FC<{ data: HomeData; onLog: (a: ActivityMeta) => void }> =
                 <span className="t-cap">{weekCaption}</span>
               </div>
               <WeekStrip days={data.week} />
+              {profile.workouts_per_week > 0 && (
+                <div className="home-goal">
+                  <ProgressBar
+                    value={data.workoutsThisWeek / profile.workouts_per_week}
+                    label={`${data.workoutsThisWeek} of ${profile.workouts_per_week} weekly workouts`}
+                  />
+                  <p className="t-cap">
+                    {data.workoutsThisWeek >= profile.workouts_per_week
+                      ? `Weekly goal reached: ${plural(data.workoutsThisWeek, 'workout')} in the last 7 days`
+                      : `${data.workoutsThisWeek} of ${plural(profile.workouts_per_week, 'workout')} in the last 7 days`}
+                  </p>
+                </div>
+              )}
             </section>
           </StaggerItem>
 
@@ -78,6 +93,30 @@ const HomeView: React.FC<{ data: HomeData; onLog: (a: ActivityMeta) => void }> =
                   {workout.openSessionId ? 'Resume workout' : 'Start workout'}
                   <Icon name="arrowRight" />
                 </Button>
+              </Card>
+            </StaggerItem>
+          )}
+
+          {data.lastWorkout && (
+            <StaggerItem>
+              <Card className="home-last">
+                <div className="sec-head">
+                  <span className="t-cap">Last workout · {relativeDay(data.lastWorkout.endedAt, new Date())}</span>
+                  <Button variant="plain" routerLink="/history" aria-label="Open workout history">
+                    History
+                    <Icon name="chevronRight" size={20} />
+                  </Button>
+                </div>
+                <h2 className="t-title-sm">{data.lastWorkout.workoutName}</h2>
+                <div className="t-cap">
+                  {[
+                    data.lastWorkout.durationMin > 0 && `${formatInt(data.lastWorkout.durationMin)} min`,
+                    plural(data.lastWorkout.setCount, 'set'),
+                    data.lastWorkout.volumeKg > 0 && `${formatLoadTotal(data.lastWorkout.volumeKg, units)} lifted`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </div>
               </Card>
             </StaggerItem>
           )}

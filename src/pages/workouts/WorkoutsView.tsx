@@ -59,6 +59,10 @@ const WorkoutsView: React.FC<WorkoutsViewProps> = ({
             <ChipRow label="Filter workouts" options={FILTERS} value={filter} onChange={onFilter} />
           </StaggerItem>
 
+          <StaggerItem>
+            <ListRow icon="progress" title="Workout history" caption="Past workouts, sets and repeating one" routerLink="/history" />
+          </StaggerItem>
+
           {plan && (
             <StaggerItem>
               <Card level="raised" className="workouts-plan">

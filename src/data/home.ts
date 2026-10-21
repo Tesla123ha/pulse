@@ -4,6 +4,7 @@ import type { WeekDay } from '../components';
 import { getDb } from '../offline/db';
 import { localWrite } from '../offline/outbox';
 import { newActivityRow } from '../offline/rows';
+import { buildHistory, latestWorkout, workoutsInLastDays, type HistoryEntry } from '../lib/history';
 import { byTimeDesc } from './sort';
 
 export interface HomeWorkout {
@@ -27,6 +28,10 @@ export interface HomeData {
   activeMin: number;
   workout: HomeWorkout | null;
   lastByType: Partial<Record<ActivityType, ActivityLogRow>>;
+  /** Workouts finished in the last 7 days, against the profile's weekly target. */
+  workoutsThisWeek: number;
+  /** The most recent finished workout with sets, if any. */
+  lastWorkout: HistoryEntry | null;
 }
 
 const toHomeWorkout = (
@@ -92,10 +97,11 @@ export async function loadHome(userId: string): Promise<HomeData> {
 
   const db = getDb();
   const sinceMs = new Date(since).getTime();
-  const [profile, allActivity, workout] = await Promise.all([
+  const [profile, allActivity, workout, sessions] = await Promise.all([
     db.profiles.get(userId),
     db.activity_logs.toArray(),
     loadTodaysWorkout(),
+    db.workout_sessions.where('status').anyOf('completed', 'ended_early').toArray(),
   ]);
   if (!profile) throw new Error('Your profile is not available yet.');
   const activity = allActivity.filter((a) => new Date(a.logged_at).getTime() >= sinceMs).sort(byTimeDesc);
@@ -117,7 +123,19 @@ export async function loadHome(userId: string): Promise<HomeData> {
   const lastByType: HomeData['lastByType'] = {};
   for (const a of activity) lastByType[a.type] ??= a;
 
+  // Only the newest finished sessions are needed to find the last workout
+  const newest = sessions
+    .filter((s) => s.ended_at)
+    .sort((a, b) => new Date(b.ended_at as string).getTime() - new Date(a.ended_at as string).getTime())
+    .slice(0, 5);
+  const newestSets = await db.set_logs.where('session_id').anyOf(newest.map((s) => s.id)).toArray();
+  const workouts = await db.workouts.bulkGet([...new Set(newest.map((s) => s.workout_id))]);
+
   return {
+    workoutsThisWeek: workoutsInLastDays(sessions, now),
+    lastWorkout: latestWorkout(
+      buildHistory(newest, newestSets, workouts.filter((w): w is NonNullable<typeof w> => Boolean(w))),
+    ),
     profile,
     week,
     activeDays: days.filter((d) => activeKeys.has(dateKey(d))).length,

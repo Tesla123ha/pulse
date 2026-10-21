@@ -1,5 +1,5 @@
 import type { Units } from './database.types';
-import { formatDecimal } from './format';
+import { formatDecimal, formatInt } from './format';
 
 // Everything is stored metric. These convert for display and back for input.
 const KM_PER_MI = 1.609344;
@@ -19,3 +19,6 @@ export const formatDistance = (km: number, u: Units) => `${formatDecimal(kmToDis
 
 /** "22.5 kg" or "49.6 lb" */
 export const formatWeight = (kg: number, u: Units) => `${formatDecimal(kgToDisplay(kg, u))} ${weightUnit(u)}`;
+
+/** A large total weight, rounded to whole units with separators: "3,200 kg". */
+export const formatLoadTotal = (kg: number, u: Units) => `${formatInt(kgToDisplay(kg, u))} ${weightUnit(u)}`;

@@ -1,4 +1,6 @@
 import type { ActivityLogRow, PersonalRecordRow, ProfileRow } from '../lib/database.types';
+import { buildTrends, type ExerciseTrend } from '../lib/history';
+import { loadLoadPrefs } from './loadPrefs';
 import { getDb } from '../offline/db';
 import { inflightSeqs, localWrite } from '../offline/outbox';
 import { byTimeDesc } from './sort';
@@ -12,16 +14,21 @@ export interface ProgressData {
   /** Finish times of saved workout sessions. */
   sessionsEndedAt: string[];
   records: PersonalRecordRow[];
+  /** Best set per workout for the lifts logged most recently. */
+  trends: ExerciseTrend[];
 }
 
 export async function loadProgress(userId: string): Promise<ProgressData> {
   const db = getDb();
-  const [profile, activity, sessions, records, workouts] = await Promise.all([
+  const [profile, activity, sessions, records, workouts, sets, exercises, prefs] = await Promise.all([
     db.profiles.get(userId),
     db.activity_logs.toArray(),
     db.workout_sessions.toArray(),
     db.personal_records.toArray(),
     db.workouts.toArray(),
+    db.set_logs.toArray(),
+    db.workout_exercises.toArray(),
+    loadLoadPrefs(),
   ]);
   if (!profile) throw new Error('Your profile is not available yet.');
   const workoutOf = new Map(sessions.map((s) => [s.id, s.workout_id]));
@@ -36,6 +43,7 @@ export async function loadProgress(userId: string): Promise<ProgressData> {
       .filter((s) => (s.status === 'completed' || s.status === 'ended_early') && s.ended_at)
       .map((s) => s.ended_at as string),
     records,
+    trends: buildTrends(sessions, sets, exercises, profile.units, prefs),
   };
 }
 

@@ -26,9 +26,11 @@ import KitFinish from './pages/kit/KitFinish';
 import KitWorkouts from './pages/kit/KitWorkouts';
 import KitProgress from './pages/kit/KitProgress';
 import KitProfile from './pages/kit/KitProfile';
+import KitHistory from './pages/kit/KitHistory';
 import Session from './pages/Session';
 import Finish from './pages/Finish';
 import LogWorkout from './pages/LogWorkout';
+import History from './pages/History';
 import Workouts from './pages/Workouts';
 import Progress from './pages/Progress';
 import Profile from './pages/Profile';
@@ -136,6 +138,7 @@ const DEV_ROUTES = import.meta.env.DEV
       { path: '/kit/workouts', page: <KitWorkouts /> },
       { path: '/kit/progress', page: <KitProgress /> },
       { path: '/kit/profile', page: <KitProfile /> },
+      { path: '/kit/history', page: <KitHistory /> },
     ].map(({ path, page }) => (
       <Route key={path} exact path={path}>
         {page}
@@ -157,6 +160,9 @@ const SignedIn: React.FC = () => (
     </Route>
     <Route exact path="/log-workout">
       <LogWorkout />
+    </Route>
+    <Route exact path="/history">
+      <History />
     </Route>
     {DEV_ROUTES}
     <Route exact path="/">
