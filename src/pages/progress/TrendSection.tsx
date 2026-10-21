@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChipRow } from '../../components';
 import { formatShortDate } from '../../lib/dates';
 import { trendChange, type ExerciseTrend } from '../../lib/history';
 import { formatChoiceValue } from '../../lib/load';
 
-const W = 300;
+const DEFAULT_W = 300;
 const H = 112;
 const PAD_X = 10;
 const PAD_Y = 14;
@@ -12,6 +12,16 @@ const PAD_Y = 14;
 /** Line of the best set per workout, oldest to newest. Spaced by workout, not by date. */
 const TrendChart: React.FC<{ trend: ExerciseTrend }> = ({ trend }) => {
   const { points, choice } = trend;
+  // Drawn at the real width so dots stay round and the height stays fixed on any screen
+  const box = useRef<HTMLDivElement>(null);
+  const [W, setW] = useState(DEFAULT_W);
+  useEffect(() => {
+    const el = box.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const watch = new ResizeObserver(([entry]) => setW(Math.max(120, Math.round(entry.contentRect.width))));
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
   const values = points.map((p) => p.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -26,8 +36,8 @@ const TrendChart: React.FC<{ trend: ExerciseTrend }> = ({ trend }) => {
     '.';
 
   return (
-    <div className="trend">
-      <svg className="trend__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary}>
+    <div className="trend" ref={box}>
+      <svg className="trend__svg" width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary}>
         <line className="trend__grid" x1={PAD_X} x2={W - PAD_X} y1={y(min)} y2={y(min)} />
         <line className="trend__grid" x1={PAD_X} x2={W - PAD_X} y1={y(max)} y2={y(max)} />
         {points.length > 1 && <path className="trend__line" d={path} />}

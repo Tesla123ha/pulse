@@ -170,8 +170,7 @@ ion-button.pl-btn.cal__log {
 }
 .trend__svg {
   display: block;
-  width: 100%;
-  height: auto;
+  max-width: 100%;
   overflow: visible;
 }
 .trend__grid {

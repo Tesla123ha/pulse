@@ -34,7 +34,9 @@ const HomeView: React.FC<{ data: HomeData; onLog: (a: ActivityMeta) => void }> =
 
   return (
     <>
-      <Stagger className="split">
+      {/* A card that appears after the first render (the last workout) would stay hidden under a running
+          entrance, so a change in the card set starts the entrance afresh. */}
+      <Stagger className="split" key={data.lastWorkout ? 'with-last' : 'no-last'}>
         <div className="split__col">
           <StaggerItem>
             <section className="section" aria-labelledby="week-title">
