@@ -25,8 +25,11 @@ const fake = vi.hoisted(() => {
     /** Returns a result to force for a write, or undefined for success. */
     /** Tables that do not exist on the server: every request to them fails like PostgREST. */
     missing: new Set<string>(),
+    /** The account signed in right now, or null for no session. */
+    sessionUser: 'sync-user' as string | null,
     writeHook: undefined as undefined | ((c: Call) => Res | undefined | 'throw-network'),
   };
+  const session = () => (state.sessionUser ? { user: { id: state.sessionUser } } : null);
   const ok: Res = { data: null, error: null, status: 200 };
   function from(table: string) {
     const call: Call = { table, kind: 'select' };
@@ -78,11 +81,17 @@ const fake = vi.hoisted(() => {
     };
     return q;
   }
-  return { state, from };
+  return { state, from, session };
 });
 
 vi.mock('../../lib/supabase', () => ({
-  supabase: { from: fake.from, auth: { refreshSession: () => Promise.resolve({ error: null }) } },
+  supabase: {
+    from: fake.from,
+    auth: {
+      refreshSession: () => Promise.resolve({ error: null }),
+      getSession: () => Promise.resolve({ data: { session: fake.session() }, error: null }),
+    },
+  },
 }));
 vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn(() => Promise.resolve({ remove() {} })) } }));
 vi.mock('@capacitor/network', () => ({
@@ -110,6 +119,7 @@ beforeEach(async () => {
   state.server = {};
   state.writeHook = undefined;
   state.missing = new Set();
+  state.sessionUser = U;
   db = await openUserDb(U);
   stop = startSync(db, U);
   await syncNow(); // let the initial (empty) cycle finish
@@ -336,5 +346,38 @@ describe('a table the server does not have yet', () => {
     await syncNow();
     expect(await db.outbox.count()).toBe(0);
     expect(state.server.exercise_load_prefs).toHaveLength(2);
+  });
+});
+
+describe('account binding', () => {
+  it('sends nothing while a different account is signed in, and keeps the queue', async () => {
+    state.sessionUser = 'someone-else';
+    await localWrite(db, ['money_accounts'], async (w) => w.upsert('money_accounts', acct('mine')));
+    await syncNow();
+    expect(writes()).toHaveLength(0);
+    expect(await pendingOps()).toHaveLength(1);
+    // the right account signs back in: the queued change goes out
+    state.sessionUser = U;
+    await syncNow();
+    expect(writes()).toHaveLength(1);
+    expect(await pendingOps()).toHaveLength(0);
+  });
+
+  it('sends nothing without a session', async () => {
+    state.sessionUser = null;
+    await localWrite(db, ['money_accounts'], async (w) => w.upsert('money_accounts', acct('a1')));
+    await syncNow();
+    expect(writes()).toHaveLength(0);
+    expect(await pendingOps()).toHaveLength(1);
+  });
+
+  it('parks a queued row that names another account instead of sending it', async () => {
+    const foreign = { id: 'f1', user_id: 'other-user', name: 'x', opening_balance_centavos: 0 } as never;
+    await localWrite(db, ['money_accounts'], async (w) => w.upsert('money_accounts', foreign));
+    await syncNow();
+    expect(writes()).toHaveLength(0);
+    const failed = await db.outbox.where('status').equals('failed').toArray();
+    expect(failed).toHaveLength(1);
+    expect(failed[0].lastError).toMatch(/different account/i);
   });
 });

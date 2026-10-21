@@ -125,10 +125,22 @@ const pushable = (db: PulseDB) =>
  */
 async function push(db: PulseDB): Promise<PushResult> {
   let refreshed = false;
+  // Writes go out only under the account this database belongs to. With no session, or a different
+  // account signed in, nothing is sent; the queue waits for the right account.
+  if (await pushable(db).count()) {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session || data.session.user.id !== ctx?.userId) return 'retry';
+  }
   for (;;) {
     const op = await pushable(db).first();
     if (!op) return 'done';
     const seq = op.seq as number;
+    const owner = op.row?.user_id;
+    if (typeof owner === 'string' && owner !== ctx?.userId) {
+      // A queued row that names another account must never be sent from this one.
+      await db.outbox.update(seq, { status: 'failed', lastError: 'This change belongs to a different account.' });
+      continue;
+    }
     inflightSeqs.add(seq);
     let res: Res;
     try {
