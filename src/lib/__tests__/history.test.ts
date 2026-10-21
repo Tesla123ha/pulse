@@ -116,7 +116,7 @@ describe('buildDetail', () => {
 
 describe('workoutsInLastDays', () => {
   const now = new Date('2026-10-20T15:00:00');
-  it('counts completed workouts in the window, including today and excluding older ones', () => {
+  it('counts finished workouts in the window, including today, ended early ones, and excluding older ones', () => {
     const s = [
       session('1', '2026-10-20T08:00:00'),
       session('2', '2026-10-14T09:00:00'),
@@ -124,7 +124,7 @@ describe('workoutsInLastDays', () => {
       session('4', '2026-10-18T09:00:00', { status: 'ended_early' }),
       session('5', null),
     ];
-    expect(workoutsInLastDays(s, now)).toBe(2);
+    expect(workoutsInLastDays(s, now)).toBe(3);
   });
 });
 

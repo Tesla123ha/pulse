@@ -117,12 +117,15 @@ export function buildDetail(
     }));
 }
 
-/** Workouts finished in the last 7 days counting today, the same window as the week strip on Home. */
+/**
+ * Workouts finished in the last 7 days counting today, the same window as the week strip on Home. A workout
+ * ended early still counts, like the Workouts tile on Progress; an unfinished one does not.
+ */
 export function workoutsInLastDays(sessions: WorkoutSessionRow[], now: Date, days = 7): number {
   const from = startOfDay(addDays(now, -(days - 1))).getTime();
   const to = addDays(startOfDay(now), 1).getTime();
   return sessions.filter((s) => {
-    if (!finished(s) || s.status !== 'completed') return false;
+    if (!finished(s)) return false;
     const t = new Date(s.ended_at).getTime();
     return t >= from && t < to;
   }).length;

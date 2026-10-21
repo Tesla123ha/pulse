@@ -27,7 +27,7 @@ const TrendChart: React.FC<{ trend: ExerciseTrend }> = ({ trend }) => {
 
   return (
     <div className="trend">
-      <svg className="trend__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} preserveAspectRatio="none">
+      <svg className="trend__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary}>
         <line className="trend__grid" x1={PAD_X} x2={W - PAD_X} y1={y(min)} y2={y(min)} />
         <line className="trend__grid" x1={PAD_X} x2={W - PAD_X} y1={y(max)} y2={y(max)} />
         {points.length > 1 && <path className="trend__line" d={path} />}
