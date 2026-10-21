@@ -17,6 +17,7 @@ import { Redirect, Route, useLocation } from 'react-router-dom';
 import { IonApp, IonRouterOutlet, IonTabs, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import Auth from './pages/Auth';
+import ResetPassword from './pages/ResetPassword';
 import Home from './pages/Home';
 import Kit from './pages/kit/Kit';
 import KitHome from './pages/kit/KitHome';
@@ -108,8 +109,10 @@ const DbGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 /** Session guard: routes below render only with a signed-in session. */
 const Routes: React.FC = () => {
-  const { session, loading } = useAuth();
+  const { session, loading, recovery } = useAuth();
   if (loading) return null;
+  // A reset link must end in a new password, never in the app with the short-lived session.
+  if (recovery) return <ResetPassword />;
   if (!session) return <SignedOut />;
   return (
     <SyncProvider>

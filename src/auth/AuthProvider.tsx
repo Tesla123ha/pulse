@@ -10,17 +10,23 @@ interface AuthState {
   session: Session | null;
   /** True until the stored session has been read. */
   loading: boolean;
+  /** True after a password-reset email link was opened: the person must choose a new password first. */
+  recovery: boolean;
 }
 
 interface AuthContextValue extends AuthState {
   /** The only way to leave the signed-in state: clears the session and this user's local data. */
   signOut: () => Promise<void>;
+  /** Ends the password-reset step once a new password is saved. */
+  finishRecovery: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
   session: null,
   loading: true,
+  recovery: false,
   signOut: async () => undefined,
+  finishRecovery: () => undefined,
 });
 
 /** Supabase persists the session under `sb-<project-ref>-auth-token`. */
@@ -53,8 +59,14 @@ function isRetryable(error: { name?: string } | null): boolean {
   return error?.name === 'AuthRetryableFetchError';
 }
 
+/**
+ * Read when this module loads, before Supabase has consumed the address: a password-reset email link
+ * arrives as `#...&type=recovery`. The PASSWORD_RECOVERY event can fire before the listener below exists.
+ */
+const openedFromRecoveryLink = typeof window !== 'undefined' && /(^|[#&?])type=recovery(&|$)/.test(window.location.hash + window.location.search);
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<AuthState>({ session: null, loading: true });
+  const [state, setState] = useState<AuthState>({ session: null, loading: true, recovery: openedFromRecoveryLink });
   // Set while the user is signing out on purpose; any other SIGNED_OUT may be a failed offline refresh.
   const explicitSignOut = useRef(false);
 
@@ -66,13 +78,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (!active) return;
         if (error && (!isOnline() || isRetryable(error))) {
           // Offline with an expired token: trust the session saved on this device.
-          setState({ session: readStoredSession(), loading: false });
+          setState((s) => ({ ...s, session: readStoredSession(), loading: false }));
         } else {
-          setState({ session: data.session, loading: false });
+          setState((s) => ({ ...s, session: data.session, loading: false }));
         }
       })
       .catch(() => {
-        if (active) setState({ session: readStoredSession(), loading: false });
+        if (active) setState((s) => ({ ...s, session: readStoredSession(), loading: false }));
       });
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
@@ -84,11 +96,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // INITIAL_SESSION or a failed refresh without a session: fall back to storage.
         const stored = readStoredSession();
         if (stored && !explicitSignOut.current) {
-          setState((s) => (s.session ? { ...s, loading: false } : { session: stored, loading: false }));
+          setState((s) => (s.session ? { ...s, loading: false } : { ...s, session: stored, loading: false }));
           return;
         }
       }
-      setState({ session, loading: false });
+      // A reset link signs the person in with a short-lived session: hold them on the new-password step.
+      setState((s) => ({ session, loading: false, recovery: event === 'PASSWORD_RECOVERY' ? true : session ? s.recovery : false }));
     });
     return () => {
       active = false;
@@ -115,14 +128,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Revoke on the server when reachable; otherwise just clear this device.
       const { error } = await supabase.auth.signOut();
       if (error) await supabase.auth.signOut({ scope: 'local' });
-      setState({ session: null, loading: false });
+      setState({ session: null, loading: false, recovery: false });
       if (userId) await deleteUserDb(userId);
     } finally {
       explicitSignOut.current = false;
     }
   }, [userId]);
 
-  const value = useMemo<AuthContextValue>(() => ({ ...state, signOut }), [state, signOut]);
+  const finishRecovery = useCallback(() => setState((s) => ({ ...s, recovery: false })), []);
+  const value = useMemo<AuthContextValue>(() => ({ ...state, signOut, finishRecovery }), [state, signOut, finishRecovery]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
